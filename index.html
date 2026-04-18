@@ -1,0 +1,2243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>うちごはん</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=Noto+Sans+JP:wght@300;400;500&display=swap');
+  :root {
+    --cream: #FAF6F0; --warm: #F5EDE0; --brown: #8B6348;
+    --dark: #2D1F14; --accent: #E8833A; --green: #6B9E78;
+    --red: #D95F5F; --border: #E0D5C8; --blue: #5B8FC4;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:inherit; background:var(--cream); color:var(--dark); min-height:100vh; max-width:430px; margin:0 auto; }
+
+  header { background:var(--dark); padding:16px 20px 12px; position:sticky; top:0; z-index:100; }
+  header h1 { font-family:'Zen Maru Gothic',sans-serif; color:var(--cream); font-size:20px; letter-spacing:.05em; }
+  header p { color:#A08070; font-size:10px; margin-top:2px; }
+
+  .tabs { display:flex; background:var(--dark); padding:0 8px 10px; gap:4px; overflow-x:auto; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab { flex-shrink:0; padding:7px 10px; border:none; border-radius:20px; font-family:inherit; font-size:10px; cursor:pointer; background:#3D2D1E; color:#A08070; transition:all .2s; white-space:nowrap; }
+  .tab.active { background:var(--accent); color:white; font-weight:500; }
+
+  .page { display:none; padding:16px; }
+  .page.active { display:block; }
+
+  .section-title { font-family:'Zen Maru Gothic',sans-serif; font-size:14px; color:var(--brown); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+
+  .ingredient-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+  .ingredient-card { background:white; border-radius:12px; padding:12px; border:1px solid var(--border); position:relative; }
+  .ingredient-name { font-size:12px; font-weight:500; margin-bottom:3px; padding-right:18px; }
+  .ingredient-amount { font-size:10px; color:#888; }
+  .ingredient-expiry { font-size:10px; margin-top:5px; padding:2px 7px; border-radius:10px; display:inline-block; }
+  .expiry-soon { background:#FFF0E0; color:var(--accent); }
+  .expiry-ok { background:#EFF7F1; color:var(--green); }
+  .expiry-urgent { background:#FDEAEA; color:var(--red); }
+  .del-btn { position:absolute; top:8px; right:8px; background:none; border:none; font-size:11px; color:#ccc; cursor:pointer; }
+
+  .add-form { background:white; border-radius:14px; padding:14px; border:1px solid var(--border); margin-bottom:16px; }
+  .add-form h3 { font-size:12px; font-weight:500; margin-bottom:10px; color:var(--brown); }
+  .form-row { display:flex; gap:6px; margin-bottom:6px; }
+  input[type="text"],input[type="number"],input[type="date"],select,textarea {
+    width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:9px;
+    font-family:inherit; font-size:12px; background:var(--cream); color:var(--dark); outline:none;
+  }
+  input:focus,select:focus,textarea:focus { border-color:var(--accent); }
+  textarea { resize:none; height:60px; }
+
+  .btn { width:100%; padding:12px; border:none; border-radius:11px; font-family:inherit; font-size:13px; font-weight:500; cursor:pointer; transition:all .2s; }
+  .btn-primary { background:var(--accent); color:white; }
+  .btn-primary:hover { background:#D4712A; }
+  .btn-primary:disabled { background:#ccc; cursor:not-allowed; }
+  .btn-secondary { background:var(--dark); color:var(--cream); margin-top:6px; }
+  .btn-green { background:var(--green); color:white; margin-top:6px; }
+
+  .family-card { background:white; border-radius:14px; padding:14px; border:1px solid var(--border); margin-bottom:10px; }
+  .family-card h3 { font-size:13px; font-weight:500; margin-bottom:10px; }
+  .concern-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+  .concern-tag { padding:4px 10px; border-radius:20px; font-size:10px; cursor:pointer; border:1px solid var(--border); background:var(--cream); transition:all .2s; }
+  .concern-tag.selected { background:var(--accent); color:white; border-color:var(--accent); }
+  .concern-category { margin-bottom:12px; }
+  .concern-cat-label { font-size:10px; font-weight:500; color:var(--brown); margin-bottom:6px; padding-bottom:3px; border-bottom:1px solid var(--border); }
+
+  .insta-card { background:white; border-radius:14px; padding:14px; border:1px solid var(--border); margin-bottom:10px; }
+  .insta-item { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--border); }
+  .insta-item:last-child { border-bottom:none; }
+  .insta-thumb { width:36px; height:36px; border-radius:7px; background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); display:flex; align-items:center; justify-content:center; color:white; font-size:14px; flex-shrink:0; }
+  .insta-info { flex:1; min-width:0; }
+  .insta-title { font-size:11px; font-weight:500; }
+  .insta-url { font-size:9px; color:#999; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  .day-card { background:white; border-radius:14px; border:1px solid var(--border); margin-bottom:10px; overflow:hidden; }
+  .day-header { background:var(--dark); color:var(--cream); padding:9px 14px; font-size:12px; font-weight:500; display:flex; align-items:center; justify-content:space-between; }
+  .day-header .date-sub { font-size:10px; color:#A08070; }
+  .meal-row { padding:9px 14px; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; gap:8px; }
+  .meal-row:last-child { border-bottom:none; }
+  .meal-label { font-size:9px; color:white; padding:2px 7px; border-radius:10px; flex-shrink:0; margin-top:2px; }
+  .label-main { background:var(--accent); }
+  .label-side { background:var(--green); }
+  .label-soup { background:var(--brown); }
+  .meal-info { flex:1; }
+  .meal-name { font-size:12px; font-weight:500; cursor:pointer; }
+  .meal-name:hover { color:var(--accent); }
+  .meal-actions { display:flex; gap:4px; margin-top:5px; flex-wrap:wrap; }
+  .check-btn { font-size:9px; padding:3px 8px; border-radius:7px; border:1px solid var(--border); background:var(--cream); cursor:pointer; font-family:inherit; transition:all .15s; }
+  .check-btn.checked-made { background:var(--green); color:white; border-color:var(--green); }
+  .check-btn.checked-skip { background:#ddd; color:#666; border-color:#ddd; }
+  .check-btn.checked-good { background:var(--accent); color:white; border-color:var(--accent); }
+  .check-btn.checked-bad { background:var(--red); color:white; border-color:var(--red); }
+
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--cream); border-radius:22px 22px 0 0; padding:20px 18px; width:100%; max-height:85vh; overflow-y:auto; position:fixed; bottom:0; left:0; right:0; animation:slideUp .3s ease; }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .modal-handle { width:36px; height:3px; background:var(--border); border-radius:2px; margin:0 auto 16px; }
+  .modal-title { font-family:'Zen Maru Gothic',sans-serif; font-size:17px; margin-bottom:14px; }
+  .recipe-section { margin-bottom:14px; }
+  .recipe-section h4 { font-size:11px; color:var(--brown); font-weight:500; margin-bottom:6px; }
+  .recipe-section p { font-size:12px; line-height:1.8; }
+  .recipe-section ol { padding-left:16px; }
+  .recipe-section ol li { font-size:12px; line-height:1.9; }
+  .close-btn { position:absolute; top:16px; right:16px; background:var(--border); border:none; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; }
+
+  .shopping-item { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .shopping-item:last-child { border-bottom:none; }
+  .shopping-item input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); flex-shrink:0; }
+  .shopping-item label { font-size:12px; flex:1; cursor:pointer; }
+  .shopping-item label.done { text-decoration:line-through; color:#bbb; }
+  .shopping-cat { font-size:10px; color:var(--brown); font-weight:500; margin:12px 0 4px; padding-bottom:3px; border-bottom:1px solid var(--border); }
+
+  .nutrition-card { background:white; border-radius:14px; padding:14px; border:1px solid var(--border); margin-bottom:10px; }
+  .nutrition-card h3 { font-size:12px; font-weight:500; margin-bottom:12px; color:var(--brown); }
+  .nutrient-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .nutrient-label { font-size:11px; width:90px; flex-shrink:0; }
+  .nutrient-bar-wrap { flex:1; height:8px; background:#eee; border-radius:4px; overflow:hidden; }
+  .nutrient-bar { height:100%; border-radius:4px; transition:width .6s ease; }
+  .nutrient-val { font-size:10px; color:#888; width:36px; text-align:right; flex-shrink:0; }
+  .balance-grade { text-align:center; padding:12px; font-size:32px; }
+  .balance-comment { text-align:center; font-size:12px; color:var(--brown); margin-top:4px; line-height:1.6; }
+
+  .history-item { background:white; border-radius:12px; padding:12px 14px; border:1px solid var(--border); margin-bottom:8px; }
+  .history-date { font-size:10px; color:#999; margin-bottom:3px; }
+  .history-name { font-size:13px; font-weight:500; }
+  .history-tags { display:flex; gap:4px; margin-top:6px; flex-wrap:wrap; }
+  .history-tag { font-size:9px; padding:2px 7px; border-radius:10px; }
+  .tag-good { background:#FFF0E0; color:var(--accent); }
+  .tag-bad { background:#FDEAEA; color:var(--red); }
+  .tag-made { background:#EFF7F1; color:var(--green); }
+
+  .scan-area { background:white; border-radius:14px; padding:20px; border:2px dashed var(--border); text-align:center; margin-bottom:14px; }
+  .scan-area .scan-icon { font-size:44px; margin-bottom:8px; }
+  .scan-area p { font-size:12px; color:#888; line-height:1.7; }
+  #barcode-video { width:100%; border-radius:10px; display:none; margin-top:10px; }
+
+  .advice-card { background:linear-gradient(135deg,#FFF8F0,#FFF0E0); border-radius:14px; padding:14px; border:1px solid #F0D0A0; margin-bottom:10px; }
+  .advice-card h4 { font-size:11px; color:var(--brown); margin-bottom:6px; }
+  .advice-card p { font-size:12px; line-height:1.7; }
+
+  .api-banner { background:#FFF8E8; border:1px solid #F0D080; border-radius:11px; padding:10px 14px; margin-bottom:14px; font-size:11px; color:#8B6000; line-height:1.6; }
+  .api-banner input { margin-top:6px; font-size:11px; padding:7px 10px; }
+
+  .loading { text-align:center; padding:30px; color:var(--brown); }
+  .loading-dots span { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); margin:0 2px; animation:bounce 1.2s infinite; }
+  .loading-dots span:nth-child(2){animation-delay:.2s} .loading-dots span:nth-child(3){animation-delay:.4s}
+  @keyframes bounce { 0%,80%,100%{transform:scale(.6);opacity:.4} 40%{transform:scale(1);opacity:1} }
+  .loading p { margin-top:10px; font-size:12px; }
+
+  .empty-state { text-align:center; padding:30px 20px; color:#999; }
+  .empty-state .emoji { font-size:40px; margin-bottom:10px; }
+  .empty-state p { font-size:12px; line-height:1.7; }
+
+  .two-btn { display:flex; gap:8px; margin-bottom:12px; }
+  .two-btn .btn { margin-top:0; }
+  .btn-blue { background:var(--blue); color:white; margin-top:6px; }
+  .label-bento { background:var(--blue); }
+  .sale-tag { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; background:#EFF7F1; border:1px solid #C0DEC8; font-size:11px; color:var(--green); margin:3px; }
+  .sale-tag button { background:none; border:none; font-size:10px; color:#999; cursor:pointer; padding:0; }
+  .use-log-item { background:white; border-radius:10px; padding:10px 12px; border:1px solid var(--border); margin-bottom:6px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .use-log-left { flex:1; min-width:0; }
+  .use-log-name { font-size:12px; font-weight:500; }
+  .use-log-memo { font-size:10px; color:#888; margin-top:2px; }
+  .use-log-right { font-size:10px; color:#999; text-align:right; flex-shrink:0; }
+  .use-log-amount { color:var(--accent); font-weight:500; }
+  #reader video { border-radius:8px; }
+  .label-lunch { background:#9B59B6; }
+  .ing-card-actions { display:flex; gap:4px; margin-top:7px; }
+  .urgent-badge { display:inline-block; font-size:9px; padding:2px 6px; border-radius:10px; background:#FDEAEA; color:var(--red); font-weight:500; margin-top:3px; }
+</style>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>🍱 うちごはん</h1>
+  <p>家族のための献立アシスタント <span style="font-size:9px;opacity:.5;margin-left:4px">v2.5.0</span></p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('ingredients',this)">食材</button>
+  <button class="tab" onclick="showTab('scan',this)">📷スキャン</button>
+  <button class="tab" onclick="showTab('family',this)">家族</button>
+  <button class="tab" onclick="showTab('insta',this)">参考</button>
+  <button class="tab" onclick="showTab('menu',this)">献立</button>
+  <button class="tab" onclick="showTab('shopping',this)">🛒買い物</button>
+  <button class="tab" onclick="showTab('nutrition',this)">💊栄養</button>
+  <button class="tab" onclick="showTab('history',this)">📖履歴</button>
+  <button class="tab" onclick="showTab('settings',this)">⚙️設定</button>
+</div>
+
+<!-- 食材 -->
+<div id="tab-ingredients" class="page active">
+  <div class="section-title">🥬 食材を追加</div>
+  <div class="add-form">
+    <div class="form-row">
+      <input type="text" id="ing-name" placeholder="食材名・商品名（例：バーモントカレー）">
+    </div>
+    <div class="form-row">
+      <input type="text" id="ing-amount" placeholder="量（例：300g・1箱）" style="flex:1">
+      <input type="date" id="ing-expiry" style="flex:1">
+    </div>
+    <div class="form-row">
+      <select id="ing-category">
+        <option value="肉・魚">🥩 肉・魚</option>
+        <option value="野菜">🥦 野菜</option>
+        <option value="乳製品・卵">🥛 乳製品・卵</option>
+        <option value="調味料・市販品">🫙 調味料・市販品</option>
+        <option value="乾物・缶詰">📦 乾物・缶詰</option>
+        <option value="冷凍食品">🧊 冷凍食品</option>
+        <option value="その他">📋 その他</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="addIngredient()">+ 食材を追加</button>
+  </div>
+  <div class="section-title">📦 登録済み食材 <span style="font-size:10px;color:#aaa">（期限が近い順）</span></div>
+  <div class="ingredient-grid" id="ingredient-list"></div>
+  <div class="section-title" style="margin-top:8px">📝 食材の使用記録 <span style="font-size:10px;color:#aaa">（レシピ以外）</span></div>
+  <div id="use-log-list"></div>
+</div>
+
+<!-- スキャン -->
+<div id="tab-scan" class="page">
+  <div class="section-title">📷 食材を認識する</div>
+  <!-- スキャンタブ専用APIキー入力（常に表示） -->
+  <div class="add-form" style="border:2px solid var(--accent)">
+    <h3 style="color:var(--accent)">🔑 Gemini APIキー</h3>
+    <p style="font-size:11px;color:#888;margin-bottom:8px">
+      <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">Google AI Studio（無料）でキー取得 ↗</a>
+    </p>
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <input type="text" id="scan-api-key-input"
+        placeholder="AIzaSy... のキーを貼り付け"
+        autocorrect="off" autocapitalize="off" spellcheck="false"
+        style="flex:1;font-size:12px;padding:9px 11px;border:1px solid var(--accent);border-radius:9px;font-family:inherit;background:var(--cream)">
+      <button onclick="saveScanApiKey()"
+        style="padding:9px 16px;background:var(--accent);color:white;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">保存</button>
+    </div>
+    <div id="scan-key-status" style="font-size:11px;margin-top:2px"></div>
+    <!-- 診断ボタン -->
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+      <button onclick="diagApiKey()" style="font-size:10px;padding:6px 10px;background:var(--blue);color:white;border:none;border-radius:8px;cursor:pointer;font-family:inherit">🔍 接続診断</button>
+      <button onclick="clearApiKey()" style="font-size:10px;padding:6px 10px;background:none;border:1px solid #ddd;border-radius:8px;cursor:pointer;color:#bbb;font-family:inherit">🗑 キーをクリア</button>
+    </div>
+    <div id="diag-result" style="display:none;margin-top:8px;padding:8px 10px;background:#F0F4FF;border-radius:8px;font-size:10px;line-height:1.8;word-break:break-all"></div>
+  </div>
+
+  <!-- 冷蔵庫・食材まとめて認識 -->
+  <div class="scan-area">
+    <div class="scan-icon">📸</div>
+    <p>冷蔵庫の中や食材をまとめて撮ると<br>AIが複数食材を自動で認識します</p>
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="analyzePhoto(event)">
+    <button class="btn btn-primary" style="margin-top:12px" onclick="document.getElementById('photo-input').click()">📷 食材まとめて撮影</button>
+  </div>
+
+  <!-- 商品パッケージ認識（NEW） -->
+  <div class="scan-area">
+    <div class="scan-icon">📦</div>
+    <p>市販品のパッケージを撮影すると<br>AIが商品名・内容量を認識して登録</p>
+    <input type="file" id="product-photo-input" accept="image/*" capture="environment" style="display:none" onchange="analyzeProductPhoto(event)">
+    <button class="btn btn-secondary" style="margin-top:12px" onclick="document.getElementById('product-photo-input').click()">📦 商品パッケージを撮影</button>
+  </div>
+
+  <!-- バーコードスキャン -->
+  <div class="scan-area">
+    <div class="scan-icon">📊</div>
+    <p>バーコードで商品を登録します<br>JANコード・QRコード対応</p>
+    <div id="reader" style="display:none;width:100%;margin-top:10px;border-radius:8px;overflow:hidden"></div>
+    <div id="barcode-status" style="font-size:11px;color:#888;margin-top:6px;min-height:18px"></div>
+    <button class="btn btn-secondary" style="margin-top:12px" id="barcode-btn" onclick="startBarcodeScanner()">📊 バーコードをスキャン</button>
+    <button class="btn btn-secondary" style="margin-top:6px;display:none" id="barcode-stop-btn" onclick="stopBarcodeScanner()">■ スキャンを停止</button>
+  </div>
+  <div id="scan-result"></div>
+  <!-- バーコードモーダルから呼ぶ商品写真入力 -->
+  <input type="file" id="modal-product-photo" accept="image/*" capture="environment" style="display:none" onchange="analyzeProductPhotoFromModal(event)">
+</div>
+
+<!-- 家族 -->
+<div id="tab-family" class="page">
+  <div class="section-title">👨‍👩‍👧 家族の情報</div>
+  <div id="family-list"></div>
+  <div class="add-form">
+    <h3>＋ メンバーを追加</h3>
+    <div class="form-row">
+      <input type="text" id="fam-name" placeholder="名前（例：パパ、長女）">
+      <select id="fam-age" style="flex:1">
+        <option value="">年齢層</option>
+        <option value="未就学児(〜6歳)">未就学児</option>
+        <option value="小学生(7〜12歳)">小学生</option>
+        <option value="中高生(13〜18歳)">中高生</option>
+        <option value="20〜30代">20〜30代</option>
+        <option value="40〜50代">40〜50代</option>
+        <option value="60代以上">60代以上</option>
+      </select>
+    </div>
+    <div class="concern-category">
+      <div class="concern-cat-label">🌿 アレルギー・食べられないもの</div>
+      <div class="concern-tags">
+        <span class="concern-tag" onclick="toggleConcern(this)">卵アレルギー</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">乳アレルギー</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">小麦アレルギー</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">えびアレルギー</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">そばアレルギー</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">ナッツアレルギー</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">魚介が苦手</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">肉が苦手</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">辛いものが苦手</span>
+      </div>
+    </div>
+    <div class="concern-category">
+      <div class="concern-cat-label">✨ お肌の悩み</div>
+      <div class="concern-tags">
+        <span class="concern-tag" onclick="toggleConcern(this)">ニキビ・吹き出物</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">肌荒れ・乾燥肌</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">シミ・くすみ</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">肌のハリをアップ</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">アトピー気味</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">日焼けのケア</span>
+      </div>
+    </div>
+    <div class="concern-category">
+      <div class="concern-cat-label">📏 成長・体型の悩み</div>
+      <div class="concern-tags">
+        <span class="concern-tag" onclick="toggleConcern(this)">身長を伸ばしたい</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">体重を減らしたい</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">体重を増やしたい</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">筋力アップしたい</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">むくみを改善したい</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">体を大きくしたい</span>
+      </div>
+    </div>
+    <div class="concern-category">
+      <div class="concern-cat-label">💪 体力・エネルギーの悩み</div>
+      <div class="concern-tags">
+        <span class="concern-tag" onclick="toggleConcern(this)">疲れやすい・疲労回復</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">集中力を上げたい</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">スポーツのパフォーマンス向上</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">朝が弱い・目覚めが悪い</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">眠りの質を上げたい</span>
+      </div>
+    </div>
+    <div class="concern-category">
+      <div class="concern-cat-label">🩺 体の不調・病気予防</div>
+      <div class="concern-tags">
+        <span class="concern-tag" onclick="toggleConcern(this)">貧血気味</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">便秘気味</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">下痢・お腹が弱い</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">風邪をひきやすい</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">花粉症・アレルギー体質</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">血糖値が気になる</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">コレステロールが気になる</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">血圧が気になる</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">骨を強くしたい</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">歯・歯茎を強くしたい</span>
+      </div>
+    </div>
+    <div class="concern-category">
+      <div class="concern-cat-label">🧠 メンタル・ホルモンの悩み</div>
+      <div class="concern-tags">
+        <span class="concern-tag" onclick="toggleConcern(this)">ストレスを和らげたい</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">イライラしやすい</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">生理痛・PMS</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">更年期の不調</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">髪のコシ・抜け毛が気になる</span>
+      </div>
+    </div>
+    <div class="concern-category">
+      <div class="concern-cat-label">🍽 食の好み</div>
+      <div class="concern-tags">
+        <span class="concern-tag" onclick="toggleConcern(this)">野菜が苦手</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">魚をもっと食べたい</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">和食好き</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">洋食好き</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">薄味好き</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">濃い味好き</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">少食・食が細い</span>
+        <span class="concern-tag" onclick="toggleConcern(this)">よく食べる・大食い</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:14px" onclick="addFamilyMember()">＋ 追加する</button>
+  </div>
+</div>
+
+<!-- 参考レシピ -->
+<div id="tab-insta" class="page">
+  <div class="section-title">📸 参考にしたいレシピ</div>
+  <div class="add-form">
+    <div class="form-row"><input type="text" id="insta-url" placeholder="InstagramのURLを貼り付け"></div>
+    <div class="form-row"><input type="text" id="insta-title" placeholder="料理名（例：ふわとろ親子丼）"></div>
+    <button class="btn btn-primary" onclick="addInstaRef()">+ 追加</button>
+  </div>
+  <div class="insta-card" id="insta-list">
+    <div class="empty-state"><div class="emoji">📱</div><p>InstagramのURLを貼って<br>参考レシピを登録してください</p></div>
+  </div>
+</div>
+
+<!-- 献立 -->
+<div id="tab-menu" class="page">
+  <div class="section-title">🗓 今週の献立</div>
+  <div class="api-banner">
+    💡 AIを使うにはAPIキーを入力して保存してください。<br>
+    ✅ <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">Google AI Studio（完全無料）でGemini APIキーを取得 ↗</a>
+    <div style="display:flex;gap:6px;margin-top:6px;align-items:center">
+      <input type="text" id="api-key" placeholder="APIキーを貼り付け（AIzaS... または sk-ant...）" autocorrect="off" autocapitalize="off" spellcheck="false" style="flex:1;font-size:11px;padding:7px 10px;border:1px solid #F0D080;border-radius:8px;font-family:inherit">
+      <button onclick="saveApiKey()" style="padding:7px 14px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">保存</button>
+    </div>
+    <div id="api-save-msg" style="display:none;margin-top:4px;font-size:11px;color:green;font-weight:600">✅ 保存しました！</div>
+  </div>
+
+  <div class="add-form">
+    <h3>⚙️ 献立の設定</h3>
+    <div class="form-row">
+      <div style="flex:1">
+        <div style="font-size:10px;color:#888;margin-bottom:4px">👨‍👩‍👧 何人分？</div>
+        <select id="serving-count">
+          <option value="2">2人分</option>
+          <option value="3">3人分</option>
+          <option value="4" selected>4人分</option>
+          <option value="5">5人分</option>
+          <option value="6">6人分</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:10px;color:#888;margin-bottom:4px">🗑 生ゴミの日</div>
+        <select id="garbage-day">
+          <option value="月曜・木曜" selected>月曜・木曜</option>
+          <option value="火曜・金曜">火曜・金曜</option>
+          <option value="水曜・土曜">水曜・土曜</option>
+          <option value="月曜・水曜">月曜・水曜</option>
+          <option value="火曜・木曜">火曜・木曜</option>
+        </select>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#888;margin:8px 0 4px">🍱 旦那さんのお弁当</div>
+    <div class="concern-tags" style="margin-bottom:0">
+      <span class="concern-tag" id="bento-toggle" onclick="toggleBentoSetting()">平日お弁当あり</span>
+    </div>
+    <div id="bento-detail" style="display:none;margin-top:10px">
+      <div style="font-size:10px;color:#888;margin-bottom:6px">夜の残りで作れない日（専用弁当レシピが必要）</div>
+      <div class="concern-tags">
+        <span class="concern-tag bento-day" onclick="this.classList.toggle('selected')" data-day="月">月</span>
+        <span class="concern-tag bento-day" onclick="this.classList.toggle('selected')" data-day="火">火</span>
+        <span class="concern-tag bento-day" onclick="this.classList.toggle('selected')" data-day="水">水</span>
+        <span class="concern-tag bento-day" onclick="this.classList.toggle('selected')" data-day="木">木</span>
+        <span class="concern-tag bento-day" onclick="this.classList.toggle('selected')" data-day="金">金</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="add-form">
+    <h3>🥗 平日昼食（自分用）</h3>
+    <div style="font-size:10px;color:#888;margin-bottom:6px">平日昼間の自分の食事も献立に含める</div>
+    <div class="concern-tags" style="margin-bottom:0">
+      <span class="concern-tag" id="lunch-toggle" onclick="toggleLunchSetting()">平日昼食を追加する</span>
+    </div>
+    <div id="lunch-detail" style="display:none;margin-top:10px">
+      <div style="font-size:10px;color:#888;margin-bottom:6px">昼食のこだわり（複数選択可）</div>
+      <div class="concern-tags">
+        <span class="concern-tag lunch-pref" onclick="this.classList.toggle('selected')" data-pref="diet">🥗 ダイエット重視</span>
+        <span class="concern-tag lunch-pref" onclick="this.classList.toggle('selected')" data-pref="quick">⏱ 15分以内</span>
+        <span class="concern-tag lunch-pref" onclick="this.classList.toggle('selected')" data-pref="insta">📸 インスタレシピ活用</span>
+        <span class="concern-tag lunch-pref" onclick="this.classList.toggle('selected')" data-pref="lowcarb">🍚 低糖質</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="add-form">
+    <h3>🏷 今日の特売・旬の食材</h3>
+    <p style="font-size:10px;color:#888;margin-bottom:8px">追加すると献立をその場で組み直してくれます</p>
+    <div class="form-row">
+      <input type="text" id="sale-item" placeholder="例：鮭が安かった、旬のたけのこ">
+      <button class="btn btn-primary" style="width:auto;padding:9px 14px;margin-top:0;flex-shrink:0" onclick="addSaleItem()">追加</button>
+    </div>
+    <div id="sale-tags"></div>
+    <button class="btn btn-blue" id="replan-btn" style="display:none;margin-top:8px" onclick="replanMenu()">🔄 これを考慮して献立を組み直す</button>
+  </div>
+
+  <button class="btn btn-primary" onclick="generateMenu()" id="generate-btn">✨ AIで献立を生成する</button>
+  <button class="btn btn-secondary" onclick="showDemoMenu()">📋 デモ献立を表示</button>
+  <div id="menu-container" style="margin-top:16px"></div>
+</div>
+
+<!-- 買い物リスト -->
+<div id="tab-shopping" class="page">
+  <div class="section-title">🛒 買い物リスト</div>
+  <div class="two-btn">
+    <button class="btn btn-primary" onclick="generateShoppingList()">献立から自動生成</button>
+    <button class="btn btn-secondary" onclick="clearCheckedItems()">チェック済みを削除</button>
+  </div>
+  <div class="add-form">
+    <div class="form-row">
+      <input type="text" id="shop-item" placeholder="手動で追加（例：牛乳）">
+      <select id="shop-cat" style="flex:0.8">
+        <option value="野菜・果物">🥦 野菜</option>
+        <option value="肉・魚">🥩 肉・魚</option>
+        <option value="乳製品・卵">🥛 乳製品</option>
+        <option value="調味料">🫙 調味料</option>
+        <option value="その他">📦 その他</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="addShoppingItem()">追加</button>
+  </div>
+  <div id="shopping-list"></div>
+</div>
+
+<!-- 栄養 -->
+<div id="tab-nutrition" class="page">
+  <div class="section-title">💊 栄養バランス</div>
+  <div id="nutrition-content">
+    <div class="empty-state"><div class="emoji">📊</div><p>献立を生成すると<br>栄養バランスが表示されます</p></div>
+  </div>
+  <div style="margin-top:16px">
+    <div class="section-title">🤖 AIアドバイス</div>
+    <button class="btn btn-primary" onclick="getNutritionAdvice()">AIに栄養アドバイスをもらう</button>
+    <div id="nutrition-advice" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- 履歴 -->
+<div id="tab-history" class="page">
+  <div class="section-title">📖 料理の履歴</div>
+  <div class="two-btn">
+    <button class="btn btn-primary" id="hist-all" onclick="showHistory('all')">すべて</button>
+    <button class="btn btn-secondary" id="hist-good" onclick="showHistory('good')">👍 好評</button>
+    <button class="btn btn-secondary" id="hist-bad" onclick="showHistory('bad')">👎 不評</button>
+  </div>
+  <div id="history-list"></div>
+</div>
+
+<!-- 設定 -->
+<div id="tab-settings" class="page">
+  <div class="section-title">🔍 バーコード検索の強化</div>
+  <div class="add-form">
+    <h3>🛍 Yahoo Shopping App ID（無料・任意）</h3>
+    <p style="font-size:11px;color:#888;margin-bottom:8px">日本の食品バーコード検索精度が大幅に向上します。<br>    <a href="https://developer.yahoo.co.jp/apps/create" target="_blank" style="color:var(--accent)">Yahoo Developer Center（無料）でApp IDを取得 ↗</a></p>
+    <input type="text" id="yahoo-app-id" placeholder="Yahoo App ID をここに入力" oninput="saveYahooAppId()">
+    <p style="font-size:10px;color:#aaa;margin-top:6px">※ 取得方法：Yahoo Developer Center → アプリ管理 → 新しいアプリ → Client IDをコピー</p>
+  </div>
+  <div class="section-title">💾 データ管理・アップデート</div>
+  <div class="add-form">
+    <h3>📤 全データをエクスポート</h3>
+    <p style="font-size:11px;color:#888;margin-bottom:10px">現在のすべてのデータをJSONファイルとして保存します</p>
+    <button class="btn btn-primary" onclick="exportData()">📥 データをダウンロード</button>
+  </div>
+  <div class="add-form">
+    <h3>📥 データをインポート</h3>
+    <p style="font-size:11px;color:#888;margin-bottom:10px">以前にエクスポートしたJSONファイルを読み込んで復元します</p>
+    <input type="file" id="import-file" accept=".json" onchange="importData(event)" style="display:none">
+    <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">📂 JSONファイルを選択して復元</button>
+  </div>
+  <div class="add-form">
+    <h3>ℹ️ バージョン情報</h3>
+    <p style="font-size:12px;color:var(--brown)">うちごはん v2.5.0</p>
+    <p style="font-size:11px;color:#999;margin-top:6px">機能：食材管理・バーコードスキャン・写真認識・AI献立生成・栄養管理・買い物リスト・使用記録</p>
+  </div>
+</div>
+
+<!-- レシピモーダル -->
+<div class="modal-overlay" id="recipe-modal" onclick="closeModalBg(event,'recipe-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="close-btn" onclick="closeModal('recipe-modal')">✕</button>
+    <div class="modal-title" id="modal-title"></div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- スキャン結果モーダル -->
+<div class="modal-overlay" id="scan-modal" onclick="closeModalBg(event,'scan-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="close-btn" onclick="closeModal('scan-modal')">✕</button>
+    <div class="modal-title" id="scan-modal-title">認識結果</div>
+    <div id="scan-modal-content"></div>
+  </div>
+</div>
+
+<!-- ちょこっと使用モーダル -->
+<div class="modal-overlay" id="use-modal" onclick="closeModalBg(event,'use-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="close-btn" onclick="closeModal('use-modal')">✕</button>
+    <div class="modal-title">🥄 ちょこっと使用記録</div>
+    <p style="font-size:12px;color:#888;margin-bottom:14px">レシピ以外で使った食材を記録します</p>
+    <input type="hidden" id="use-ing-id">
+    <div style="font-size:12px;font-weight:500;color:var(--brown);padding:10px 12px;background:var(--warm);border-radius:9px;margin-bottom:12px">食材：<span id="use-ing-label" style="color:var(--dark)"></span></div>
+    <div class="form-row" style="margin-bottom:8px">
+      <input type="text" id="use-amount" placeholder="使った量（例：大さじ1・少々・半分）">
+    </div>
+    <textarea id="use-memo" placeholder="メモ（例：お菓子作りに・コーヒーに入れた・子供のおやつに少し）" style="height:70px;margin-bottom:12px"></textarea>
+    <button class="btn btn-primary" onclick="saveUseRecord()">📝 記録する</button>
+  </div>
+</div>
+
+<!-- 食材編集モーダル -->
+<div class="modal-overlay" id="edit-modal" onclick="closeModalBg(event,'edit-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="close-btn" onclick="closeModal('edit-modal')">✕</button>
+    <div class="modal-title">✏️ 食材を編集</div>
+    <input type="hidden" id="edit-ing-id">
+    <div class="form-row" style="margin-bottom:8px"><input type="text" id="edit-name" placeholder="食材名"></div>
+    <div class="form-row" style="margin-bottom:8px">
+      <input type="text" id="edit-amount" placeholder="量（例：300g・1箱）" style="flex:1">
+      <input type="date" id="edit-expiry" style="flex:1">
+    </div>
+    <select id="edit-category" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:12px;background:var(--cream);margin-bottom:12px;font-family:inherit">
+      <option value="肉・魚">🥩 肉・魚</option>
+      <option value="野菜">🥦 野菜</option>
+      <option value="乳製品・卵">🥛 乳製品・卵</option>
+      <option value="調味料・市販品">🫙 調味料・市販品</option>
+      <option value="乾物・缶詰">📦 乾物・缶詰</option>
+      <option value="冷凍食品">🧊 冷凍食品</option>
+      <option value="その他">📋 その他</option>
+    </select>
+    <button class="btn btn-primary" onclick="saveIngredientEdit()">💾 保存する</button>
+  </div>
+</div>
+
+<!-- 買い足しモーダル -->
+<div class="modal-overlay" id="restock-modal" onclick="closeModalBg(event,'restock-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="close-btn" onclick="closeModal('restock-modal')">✕</button>
+    <div class="modal-title">🛒 買い足し登録</div>
+    <input type="hidden" id="restock-ing-id">
+    <div style="font-size:12px;font-weight:500;color:var(--brown);padding:10px 12px;background:var(--warm);border-radius:9px;margin-bottom:4px">食材：<span id="restock-ing-label" style="color:var(--dark)"></span></div>
+    <div style="font-size:11px;color:#888;margin-bottom:12px;padding:0 2px">現在の量：<span id="restock-current"></span></div>
+    <div class="form-row" style="margin-bottom:8px">
+      <input type="text" id="restock-amount" placeholder="新しい量（例：200g・2個）">
+    </div>
+    <input type="date" id="restock-expiry" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:12px;background:var(--cream);margin-bottom:12px;font-family:inherit">
+    <button class="btn btn-primary" onclick="saveRestock()">✅ 更新する</button>
+  </div>
+</div>
+
+<script>
+let ingredients  = JSON.parse(localStorage.getItem('uchi_ing')  || '[]');
+let familyMembers= JSON.parse(localStorage.getItem('uchi_fam')  || '[]');
+let instaRefs    = JSON.parse(localStorage.getItem('uchi_ins')  || '[]');
+let weekMenu     = JSON.parse(localStorage.getItem('uchi_menu') || 'null');
+let mealChecks   = JSON.parse(localStorage.getItem('uchi_chk')  || '{}');
+let shoppingList = JSON.parse(localStorage.getItem('uchi_shop') || '[]');
+let cookHistory  = JSON.parse(localStorage.getItem('uchi_hist') || '[]');
+let consumeHistory = JSON.parse(localStorage.getItem('uchi_consume') || '[]');
+
+function saveData() {
+  localStorage.setItem('uchi_ing',  JSON.stringify(ingredients));
+  localStorage.setItem('uchi_fam',  JSON.stringify(familyMembers));
+  localStorage.setItem('uchi_ins',  JSON.stringify(instaRefs));
+  localStorage.setItem('uchi_menu', JSON.stringify(weekMenu));
+  localStorage.setItem('uchi_chk',  JSON.stringify(mealChecks));
+  localStorage.setItem('uchi_shop', JSON.stringify(shoppingList));
+  localStorage.setItem('uchi_hist', JSON.stringify(cookHistory));
+  if(typeof saleItems !== 'undefined') localStorage.setItem('uchi_sale', JSON.stringify(saleItems));
+  if(typeof settings  !== 'undefined') localStorage.setItem('uchi_set',  JSON.stringify(settings));
+  localStorage.setItem('uchi_consume', JSON.stringify(consumeHistory));
+}
+
+// ── タブ ──
+function showTab(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  if (name === 'menu') { loadSettings(); if(weekMenu) renderMenu(weekMenu); }
+  if (name === 'scan') { updateScanBanner(); }
+  if (name === 'shopping') renderShoppingList();
+  if (name === 'nutrition') renderNutrition();
+  if (name === 'history') showHistory('all');
+  if (name === 'ingredients') { renderIngredients(); renderUseLog(); }
+}
+
+// ── 食材 ──
+function addIngredient() {
+  const name = document.getElementById('ing-name').value.trim();
+  if (!name) return alert('食材名を入力してください');
+  ingredients.push({
+    id: Date.now(),
+    name,
+    amount:   document.getElementById('ing-amount').value.trim(),
+    expiry:   document.getElementById('ing-expiry').value,
+    category: document.getElementById('ing-category').value
+  });
+  saveData(); renderIngredients();
+  ['ing-name','ing-amount','ing-expiry'].forEach(id => document.getElementById(id).value = '');
+}
+
+function removeIngredient(id) {
+  ingredients = ingredients.filter(i => i.id !== id);
+  saveData(); renderIngredients();
+}
+
+function renderIngredients() {
+  const el = document.getElementById('ingredient-list');
+  if (!ingredients.length) {
+    el.innerHTML = '<div class="empty-state" style="grid-column:span 2"><div class="emoji">🛒</div><p>食材を追加してください</p></div>';
+    return;
+  }
+  const sorted = [...ingredients].sort((a,b) => {
+    if (!a.expiry && !b.expiry) return 0;
+    if (!a.expiry) return 1; if (!b.expiry) return -1;
+    return new Date(a.expiry) - new Date(b.expiry);
+  });
+  el.innerHTML = sorted.map(ing => {
+    const ec = getExpiryClass(ing.expiry);
+    const et = ing.expiry ? getExpiryText(ing.expiry) : '';
+    const dLeft = ing.expiry ? Math.ceil((new Date(ing.expiry) - new Date()) / 86400000) : 999;
+    const urgBadge = (dLeft <= 3 && dLeft >= 0) ? '<span class="urgent-badge">🔥 要優先使用</span>' : '';
+    return '<div class="ingredient-card">'
+      + '<button class="del-btn" onclick="removeIngredient(' + ing.id + ')">✕</button>'
+      + '<div class="ingredient-name">' + ing.name + '</div>'
+      + '<div class="ingredient-amount">' + (ing.amount||'') + ' ' + ing.category + '</div>'
+      + (et ? '<span class="ingredient-expiry ' + ec + '">' + et + '</span>' : '')
+      + urgBadge
+      + (ing.aiNotes ? '<div style="font-size:9px;color:var(--blue);margin-top:3px;line-height:1.4">🤖 ' + ing.aiNotes + '</div>' : '')
+      + '<div class="ing-card-actions">'
+      + '<button onclick="editIngredient(' + ing.id + ')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:7px;background:var(--cream);font-size:10px;cursor:pointer;color:var(--brown);font-family:inherit">✏️ 編集</button>'
+      + '<button onclick="restockIngredient(' + ing.id + ')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:7px;background:var(--cream);font-size:10px;cursor:pointer;color:var(--brown);font-family:inherit">🛒 買足</button>'
+      + '<button onclick="showUseModal(' + ing.id + ')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:7px;background:var(--cream);font-size:10px;cursor:pointer;color:var(--brown);font-family:inherit">🥄 使用</button>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function getExpiryClass(expiry) {
+  if (!expiry) return '';
+  const d = Math.ceil((new Date(expiry) - new Date()) / 86400000);
+  return d <= 1 ? 'expiry-urgent' : d <= 3 ? 'expiry-soon' : 'expiry-ok';
+}
+function getExpiryText(expiry) {
+  if (!expiry) return '';
+  const d = Math.ceil((new Date(expiry) - new Date()) / 86400000);
+  if (d < 0) return '期限切れ';
+  if (d === 0) return '今日まで';
+  if (d === 1) return '明日まで';
+  return `あと${d}日`;
+}
+
+// ── スキャン ──
+async function analyzePhoto(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    document.getElementById('scan-result').innerHTML = `<div class="advice-card"><h4>⚠️ APIキーが必要です</h4><p>上の入力欄にGemini APIキーを貼り付けて「保存」を押してください。</p></div>`;
+    event.target.value = '';
+    return;
+  }
+  document.getElementById('scan-result').innerHTML = `<div class="loading"><div class="loading-dots"><span></span><span></span><span></span></div><p>写真を圧縮してAIに送信中...</p></div>`;
+  try {
+    const { base64 } = await compressImage(file, 1280, 0.80);
+    const aiText = await callAIWithImage(
+      'この写真に写っている食材・食品をすべて認識してJSON形式のみで返してください。{"items":[{"name":"食材名","amount":"推定量","category":"カテゴリ"}]}。カテゴリは肉・魚/野菜/乳製品・卵/調味料・市販品/乾物・缶詰/その他のいずれか。余分なテキスト不要。',
+      base64, 'image/jpeg', apiKey
+    );
+    const result = safeParseJson(aiText);
+    if (!result.items || !result.items.length) throw new Error('食材が認識されませんでした');
+    showScanResult(result.items);
+  } catch(e) {
+    const msg2 = e.message || '';
+    const isQuota2 = msg2.includes('上限') || msg2.includes('quota') || msg2.includes('429') || msg2.includes('リセット');
+    const isInvalid2 = msg2.includes('無効') || msg2.includes('INVALID') || msg2.includes('API_KEY');
+    let title2 = '認識できませんでした';
+    let hint2 = 'スキャンタブの「🔍 接続診断」ボタンで原因を確認してください。';
+    if (isQuota2) { title2 = '利用制限中です'; hint2 = '日本時間の午後4〜5時以降にリセットされます。'; }
+    if (isInvalid2) { title2 = 'APIキーが無効です'; hint2 = 'Google AI Studioで新しいキーを取得してください。'; }
+    document.getElementById('scan-result').innerHTML =
+      `<div class="advice-card"><h4>⚠️ ${title2}</h4>`
+      + `<p style="word-break:break-word;font-size:11px;color:#666">${msg2}</p>`
+      + `<p style="margin-top:6px;font-size:11px;color:#888">${hint2}</p></div>`;
+  }
+  event.target.value = '';
+}
+
+function showScanResult(items) {
+  document.getElementById('scan-result').innerHTML = '';
+  document.getElementById('scan-modal-title').textContent = `${items.length}品を認識しました`;
+  document.getElementById('scan-modal-content').innerHTML = `
+    <p style="font-size:12px;color:#888;margin-bottom:12px">追加したい食材を選んでください</p>
+    ${items.map((item,i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <input type="checkbox" id="sci-${i}" checked style="width:18px;height:18px;accent-color:var(--accent)">
+        <label for="sci-${i}" style="flex:1;font-size:13px">${item.name} <span style="color:#999;font-size:11px">${item.amount||''}</span></label>
+      </div>`).join('')}
+    <button class="btn btn-primary" style="margin-top:14px" onclick='addScanned(${JSON.stringify(items)})'>選択した食材を追加</button>
+  `;
+  document.getElementById('scan-modal').classList.add('open');
+}
+
+function addScanned(items) {
+  items.forEach((item,i) => {
+    const cb = document.getElementById(`sci-${i}`);
+    if (cb && cb.checked) ingredients.push({id:Date.now()+i, name:item.name, amount:item.amount||'', expiry:'', category:item.category||'その他'});
+  });
+  saveData(); renderIngredients(); closeModal('scan-modal');
+}
+
+// ── ちょこっと使用記録 ──
+function showUseModal(id) {
+  const ing = ingredients.find(i => i.id === id);
+  if (!ing) return;
+  document.getElementById('use-ing-id').value = id;
+  document.getElementById('use-ing-label').textContent = ing.name;
+  document.getElementById('use-amount').value = '';
+  document.getElementById('use-memo').value = '';
+  document.getElementById('use-modal').classList.add('open');
+}
+
+function saveUseRecord() {
+  const id = parseInt(document.getElementById('use-ing-id').value);
+  const ingName = document.getElementById('use-ing-label').textContent;
+  const amount = document.getElementById('use-amount').value.trim();
+  const memo = document.getElementById('use-memo').value.trim();
+  if (!amount) { alert('使った量を入力してください'); return; }
+  consumeHistory.unshift({ id: Date.now(), ingredientId: id, ingredientName: ingName, amount, memo, date: new Date().toLocaleDateString('ja-JP') });
+  saveData(); closeModal('use-modal'); renderUseLog();
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:var(--cream);padding:10px 20px;border-radius:20px;font-size:12px;z-index:9999;white-space:nowrap';
+  toast.textContent = '✅ ' + ingName + 'の使用を記録しました';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+function deleteUseRecord(id) {
+  consumeHistory = consumeHistory.filter(h => h.id !== id);
+  saveData(); renderUseLog();
+}
+
+function renderUseLog() {
+  const el = document.getElementById('use-log-list');
+  if (!el) return;
+  if (!consumeHistory.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:14px 20px"><div class="emoji" style="font-size:24px;margin-bottom:4px">📝</div><p>食材カードの「使った」ボタンで記録できます</p></div>';
+    return;
+  }
+  el.innerHTML = consumeHistory.slice(0, 15).map(h =>
+    '<div class="use-log-item"><div class="use-log-left"><div class="use-log-name">' + h.ingredientName + ' <span class="use-log-amount">' + h.amount + '</span></div>' +
+    (h.memo ? '<div class="use-log-memo">💬 ' + h.memo + '</div>' : '') +
+    '</div><div class="use-log-right"><div>' + h.date + '</div><button onclick="deleteUseRecord(' + h.id + ')" style="background:none;border:none;font-size:10px;color:#ccc;cursor:pointer;margin-top:4px;display:block">✕</button></div></div>'
+  ).join('');
+}
+
+let html5QrCodeInstance = null;
+
+function startBarcodeScanner() {
+  const btn = document.getElementById('barcode-btn');
+  const stopBtn = document.getElementById('barcode-stop-btn');
+  const reader = document.getElementById('reader');
+  const status = document.getElementById('barcode-status');
+  btn.style.display = 'none';
+  stopBtn.style.display = 'block';
+  reader.style.display = 'block';
+  status.textContent = 'カメラを起動中...';
+  try {
+    html5QrCodeInstance = new Html5Qrcode("reader");
+    html5QrCodeInstance.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 260, height: 120 } },
+      (decodedText) => {
+        stopBarcodeScanner();
+        status.textContent = '🔍 商品を検索中...';
+        lookupBarcode(decodedText);
+      },
+      () => {}
+    ).then(() => {
+      status.textContent = 'バーコードをカメラに向けてください';
+    }).catch(() => {
+      status.textContent = 'カメラの起動に失敗しました。権限を確認してください。';
+      resetBarcodeUI();
+    });
+  } catch(e) {
+    status.textContent = 'バーコードスキャナーの初期化に失敗しました。';
+    resetBarcodeUI();
+  }
+}
+
+function stopBarcodeScanner() {
+  if (html5QrCodeInstance) {
+    html5QrCodeInstance.stop().then(() => {
+      resetBarcodeUI(); html5QrCodeInstance = null;
+    }).catch(() => { resetBarcodeUI(); html5QrCodeInstance = null; });
+  } else { resetBarcodeUI(); }
+}
+
+function resetBarcodeUI() {
+  const btn = document.getElementById('barcode-btn');
+  const stopBtn = document.getElementById('barcode-stop-btn');
+  const reader = document.getElementById('reader');
+  if (btn) btn.style.display = 'block';
+  if (stopBtn) stopBtn.style.display = 'none';
+  if (reader) reader.style.display = 'none';
+}
+
+async function lookupBarcode(barcode) {
+  const status = document.getElementById('barcode-status');
+
+  // ── カテゴリ判定（tags + 日本語商品名）──
+  function detectCat(cats, nm) {
+    if (cats.some(c => /meat|chicken|pork|beef|fish|seafood|viande|poisson/.test(c))) return '肉・魚';
+    if (cats.some(c => /vegetable|fruit|legume/.test(c))) return '野菜';
+    if (cats.some(c => /dairy|milk|egg|cheese|lait|fromage/.test(c))) return '乳製品・卵';
+    if (cats.some(c => /frozen/.test(c))) return '冷凍食品';
+    if (cats.some(c => /condiment|sauce|seasoning|spice/.test(c))) return '調味料・市販品';
+    return guessCategory(nm || '');
+  }
+
+  // ── 内容量を整形（"500 g" → "500g"）──
+  function fmtQty(raw) {
+    return (raw || '').trim().replace(/\s+/g, '');
+  }
+
+  // ── モーダルを組み立てて表示 ──
+  function showModal(info) {
+    const { found, name, quantity, ingredientsText, kcal, protein, fat, carbs, category, source } = info;
+    const catOptions = ['肉・魚','野菜','乳製品・卵','調味料・市販品','乾物・缶詰','冷凍食品','その他']
+      .map((v,i) => {
+        const icons = ['🥩','🥦','🥛','🫙','📦','🧊','📋'];
+        return '<option value="'+v+'" '+(v===category?'selected':'')+'>' + icons[i] + ' ' + v + '</option>';
+      }).join('');
+    document.getElementById('scan-modal-title').textContent = found ? '商品が見つかりました ✅' : '商品が見つかりませんでした';
+    const safeN = (name||'').replace(/"/g,'&quot;');
+    const safeQ = (quantity||'').replace(/"/g,'&quot;');
+
+    // 情報ブロック
+    let topHTML = found
+      ? '<div style="background:var(--warm);border-radius:10px;padding:11px 12px;margin-bottom:10px">'
+        + '<div style="font-size:13px;font-weight:500">'+(name||'（商品名なし）')+'</div>'
+        + (quantity ? '<div style="font-size:11px;color:#888;margin-top:2px">📦 内容量: '+quantity+'</div>' : '')
+        + '<div style="font-size:10px;color:#bbb;margin-top:3px">JAN: '+barcode+' · 出典: '+source+'</div>'
+        + '</div>'
+      : '<div style="background:#FFF0E0;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#8B6000">'
+        + '⚠️ バーコード <b>'+barcode+'</b> はデータベースに未登録です。<br>'
+        + '<b>商品のパッケージ写真</b>でAI認識するか、手動で入力してください。'
+        + '</div>'
+        + '<button class="btn btn-secondary" style="margin-bottom:10px;background:#5B8FC4;color:white" onclick="document.getElementById(\'modal-product-photo\').click()">📸 商品写真で認識する</button>';
+
+    // 栄養成分
+    let nutriHTML = '';
+    if (kcal || protein || fat || carbs) {
+      nutriHTML = '<div style="background:#EFF7F1;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:10px;color:#444;display:flex;flex-wrap:wrap;gap:8px">'
+        + '<span style="font-weight:500;width:100%;margin-bottom:2px">📊 栄養成分 (100gあたり)</span>'
+        + (kcal    ? '<span>🔥 '+Math.round(Number(kcal))+'kcal</span>' : '')
+        + (protein ? '<span>💪 P '+parseFloat(protein).toFixed(1)+'g</span>' : '')
+        + (fat     ? '<span>🫒 F '+parseFloat(fat).toFixed(1)+'g</span>' : '')
+        + (carbs   ? '<span>🍚 C '+parseFloat(carbs).toFixed(1)+'g</span>' : '')
+        + '</div>';
+    }
+
+    // 原材料
+    let ingHTML = '';
+    if (ingredientsText) {
+      const short = ingredientsText.length > 120 ? ingredientsText.substring(0,120)+'…' : ingredientsText;
+      ingHTML = '<div style="background:#FFF8F0;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:10px;color:#666;line-height:1.6">'
+        + '<div style="font-weight:500;margin-bottom:2px">📋 原材料</div>'
+        + '<div>'+short+'</div>'
+        + '</div>';
+    }
+
+    document.getElementById('scan-modal-content').innerHTML =
+      topHTML + nutriHTML + ingHTML
+      + '<input type="text" id="bc-name" value="'+safeN+'" placeholder="食材名・商品名" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:12px;background:var(--cream);margin-bottom:8px;font-family:inherit">'
+      + '<input type="text" id="bc-maker" placeholder="メーカー名（任意・AI分析精度アップ）" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:12px;background:var(--cream);margin-bottom:8px;font-family:inherit">'
+      + '<div style="display:flex;gap:6px;margin-bottom:8px">'
+      + '<input type="text" id="bc-amount" value="'+safeQ+'" placeholder="量（例：1袋・500g）" style="flex:1;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:12px;background:var(--cream);font-family:inherit">'
+      + '<input type="date" id="bc-expiry" style="flex:1;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:12px;background:var(--cream)">'
+      + '</div>'
+      + '<select id="bc-category" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:12px;background:var(--cream);margin-bottom:8px;font-family:inherit">'+catOptions+'</select>'
+      + '<input type="hidden" id="bc-ai-notes" value="">'
+      + '<div id="bc-ai-result" style="display:none;background:#EFF7F1;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:#3a7a3a;line-height:1.6"></div>'
+      + '<div style="display:flex;gap:6px;margin-bottom:0">'
+      + '<button class="btn btn-secondary" style="flex:1;margin-top:0" onclick="enrichProductWithAI()">🤖 AIに分析させる</button>'
+      + '<button class="btn btn-primary" style="flex:1;margin-top:0" onclick="addFromBarcode()">+ 追加</button>'
+      + '</div>';
+    document.getElementById('scan-modal').classList.add('open');
+    status.textContent = '';
+  }
+
+  // ==================== 検索開始 ====================
+  let info = null;
+
+  // ── Step 1: Open Food Facts (World) ──
+  status.textContent = '🔍 Open Food Facts を検索中...';
+  try {
+    const res  = await fetch('https://world.openfoodfacts.org/api/v0/product/'+barcode+'.json');
+    const data = await res.json();
+    if (data.status === 1 && data.product) {
+      const p  = data.product;
+      const nm = p.product_name_ja || p.product_name_en || p.product_name
+              || (p.brands ? p.brands.split(',')[0].trim() : '') || '';
+      const rawQty = p.quantity
+                  || (p.product_quantity && p.product_quantity_unit
+                      ? String(p.product_quantity) + p.product_quantity_unit
+                      : '')
+                  || (p.product_quantity ? String(p.product_quantity) : '');
+      const qty = fmtQty(rawQty);
+      const nu  = p.nutriments || {};
+      info = {
+        found: true,
+        name:            nm,
+        quantity:        qty,
+        ingredientsText: p.ingredients_text_ja || p.ingredients_text || '',
+        kcal:    nu['energy-kcal_100g'] || nu['energy-kcal'] || '',
+        protein: nu['proteins_100g']    || nu['proteins']     || '',
+        fat:     nu['fat_100g']         || nu['fat']          || '',
+        carbs:   nu['carbohydrates_100g'] || nu['carbohydrates'] || '',
+        category: detectCat(p.categories_tags || [], nm),
+        source: 'Open Food Facts'
+      };
+      // 商品名が取れていない場合は次のソースへ
+      if (!nm) info = null;
+    }
+  } catch(e) {}
+
+  // ── Step 2: UPC Item DB (海外DB・一部日本対応) ──
+  if (!info) {
+    status.textContent = '🔍 UPC データベースを検索中...';
+    try {
+      const res  = await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc='+barcode);
+      const data = await res.json();
+      if (data.code === 'OK' && data.items && data.items.length > 0) {
+        const item = data.items[0];
+        if (item.title) {
+          info = {
+            found:           true,
+            name:            item.title,
+            quantity:        fmtQty(item.size || item.weight || ''),
+            ingredientsText: '',
+            kcal:'', protein:'', fat:'', carbs:'',
+            category: guessCategory(item.title),
+            source: 'UPC Item DB'
+          };
+        }
+      }
+    } catch(e) {}
+  }
+
+  // ── Step 3: Yahoo Shopping API（App IDがある場合） ──
+  const yahooId = settings.yahooAppId || '';
+  if (!info && yahooId) {
+    status.textContent = '🔍 Yahoo ショッピングで検索中...';
+    try {
+      const yRes = await fetch(
+        'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=' + yahooId
+        + '&jan_code=' + barcode + '&results=1'
+      );
+      const yData = await yRes.json();
+      if (yData.totalResultsReturned > 0 && yData.hits && yData.hits.length > 0) {
+        const item = yData.hits[0];
+        const nm = item.name || '';
+        if (nm) {
+          info = {
+            found: true,
+            name:            nm,
+            quantity:        fmtQty(item.description ? (item.description.match(/[0-9.]+\s*[gGmMlLkK㎖㎏]{1,2}/)||[''])[0] : ''),
+            ingredientsText: '',
+            kcal:'', protein:'', fat:'', carbs:'',
+            category: guessCategory(nm),
+            source: 'Yahoo Shopping'
+          };
+        }
+      }
+    } catch(e) {}
+  }
+
+  // ── Step 4: AI識別（GeminiまたはClaude APIキーがある場合のみ） ──
+  const apiKey = getApiKey();
+  if (!info && apiKey) {
+    status.textContent = '🤖 AIで商品を調べています...';
+    try {
+      const lbText = await callAI(
+        'JANコード ' + barcode + ' の日本の食品・飲料商品について教えてください。'
+        + '知っている場合のみ、以下のJSON形式のみで返してください。'
+        + '知らない場合は {"unknown":true} のみ返してください。'
+        + '{"name":"商品名（日本語）","quantity":"内容量（例:500g・1L・12枚）","category":"肉魚/野菜/乳製品卵/調味料市販品/乾物缶詰/冷凍食品/その他のいずれか"}',
+        apiKey, 250
+      );
+      {
+        const text   = lbText.replace(/```json|```/g,'').trim();
+        const parsed = JSON.parse(text);
+        if (!parsed.unknown && parsed.name) {
+          const catMap = {
+            '肉魚':'肉・魚','野菜':'野菜','乳製品卵':'乳製品・卵',
+            '調味料市販品':'調味料・市販品','乾物缶詰':'乾物・缶詰',
+            '冷凍食品':'冷凍食品','その他':'その他'
+          };
+          const cat = catMap[parsed.category] || guessCategory(parsed.name);
+          info = {
+            found: true,
+            name:            parsed.name,
+            quantity:        fmtQty(parsed.quantity || ''),
+            ingredientsText: '',
+            kcal:'', protein:'', fat:'', carbs:'',
+            category: cat,
+            source: 'AI推定 (Claude)'
+          };
+        }
+      }
+    } catch(e) {}
+  }
+
+  // ── 結果表示 ──
+  showModal(info || {
+    found: false, name:'', quantity:'', ingredientsText:'',
+    kcal:'', protein:'', fat:'', carbs:'',
+    category: 'その他', source:''
+  });
+}
+
+function addFromBarcode() {
+  const name = document.getElementById('bc-name') && document.getElementById('bc-name').value.trim();
+  if (!name) return alert('食材名を入力してください');
+  const aiNotes = (document.getElementById('bc-ai-notes') && document.getElementById('bc-ai-notes').value.trim()) || '';
+  ingredients.push({
+    id: Date.now(),
+    name,
+    amount: (document.getElementById('bc-amount') && document.getElementById('bc-amount').value.trim()) || '',
+    expiry: (document.getElementById('bc-expiry') && document.getElementById('bc-expiry').value) || '',
+    category: (document.getElementById('bc-category') && document.getElementById('bc-category').value) || 'その他',
+    aiNotes
+  });
+  saveData(); renderIngredients(); closeModal('scan-modal');
+}
+
+// ── 家族 ──
+function toggleConcern(el) { el.classList.toggle('selected'); }
+
+function addFamilyMember() {
+  const name = document.getElementById('fam-name').value.trim();
+  if (!name) return alert('名前を入力してください');
+  const concerns = [...document.querySelectorAll('#tab-family .concern-tag.selected')].map(e => e.textContent);
+  familyMembers.push({id:Date.now(), name, age:document.getElementById('fam-age').value, concerns});
+  saveData(); renderFamily();
+  document.getElementById('fam-name').value=''; document.getElementById('fam-age').value='';
+  document.querySelectorAll('#tab-family .concern-tag').forEach(t => t.classList.remove('selected'));
+}
+
+function renderFamily() {
+  const el = document.getElementById('family-list');
+  if (!familyMembers.length) { el.innerHTML='<div class="empty-state"><div class="emoji">👨‍👩‍👧</div><p>家族を追加してください</p></div>'; return; }
+  el.innerHTML = familyMembers.map(m => `
+    <div class="family-card">
+      <h3>${m.name} ${m.age?`<span style="font-size:10px;color:#999;font-weight:400">${m.age}</span>`:''}
+        <button onclick="removeFamilyMember(${m.id})" style="float:right;font-size:10px;color:#bbb;background:none;border:none;cursor:pointer">✕ 削除</button></h3>
+      <div class="concern-tags">
+        ${m.concerns.map(c=>`<span class="concern-tag selected">${c}</span>`).join('')}
+        ${!m.concerns.length?'<span style="font-size:11px;color:#999">悩みなし</span>':''}
+      </div>
+    </div>`).join('');
+}
+
+function removeFamilyMember(id) { familyMembers=familyMembers.filter(m=>m.id!==id); saveData(); renderFamily(); }
+
+// ── インスタ ──
+function addInstaRef() {
+  const url=document.getElementById('insta-url').value.trim(), title=document.getElementById('insta-title').value.trim();
+  if (!url||!title) return alert('URLと料理名を入力してください');
+  instaRefs.push({id:Date.now(),url,title}); saveData(); renderInsta();
+  document.getElementById('insta-url').value=''; document.getElementById('insta-title').value='';
+}
+
+function renderInsta() {
+  const el=document.getElementById('insta-list');
+  if (!instaRefs.length) { el.innerHTML='<div class="empty-state"><div class="emoji">📱</div><p>InstagramのURLを貼って<br>参考レシピを登録してください</p></div>'; return; }
+  el.innerHTML = instaRefs.map(r=>`
+    <div class="insta-item">
+      <div class="insta-thumb">📸</div>
+      <div class="insta-info"><div class="insta-title">${r.title}</div><div class="insta-url">${r.url}</div></div>
+      <a href="${r.url}" target="_blank" style="font-size:16px;text-decoration:none">↗️</a>
+    </div>`).join('');
+}
+
+// ── 設定 ──
+let saleItems = JSON.parse(localStorage.getItem('uchi_sale') || '[]');
+let settings  = JSON.parse(localStorage.getItem('uchi_set')  || '{"servings":4,"garbageDay":"月曜・木曜","bento":false,"bentoDays":[],"weekdayLunch":false,"lunchPrefs":["diet","quick"],"yahooAppId":"","apiKey":""}');
+
+function toggleBentoSetting() {
+  const tog = document.getElementById('bento-toggle');
+  const detail = document.getElementById('bento-detail');
+  settings.bento = !settings.bento;
+  tog.classList.toggle('selected', settings.bento);
+  detail.style.display = settings.bento ? 'block' : 'none';
+  saveData();
+}
+
+function toggleLunchSetting() {
+  const tog = document.getElementById('lunch-toggle');
+  const detail = document.getElementById('lunch-detail');
+  settings.weekdayLunch = !settings.weekdayLunch;
+  tog.classList.toggle('selected', settings.weekdayLunch);
+  detail.style.display = settings.weekdayLunch ? 'block' : 'none';
+  saveData();
+}
+
+function saveYahooAppId() {
+  settings.yahooAppId = (document.getElementById('yahoo-app-id')?.value || '').trim();
+  saveData();
+}
+
+function saveApiKey() {
+  const el = document.getElementById('api-key');
+  if (!el) return;
+  // 見えない文字（BOM・制御文字・ゼロ幅スペースなど）を除去してから保存
+  const raw = el.value.replace(/[\u0000-\u001F\u007F-\u009F\uFEFF\u200B\u200C\u200D\u2060]/g, '').trim();
+  settings.apiKey = raw;
+  el.value = raw; // 入力欄も更新
+  saveData();
+  const msg = document.getElementById('api-save-msg');
+  if (msg) { msg.style.display = 'block'; setTimeout(() => msg.style.display = 'none', 2000); }
+}
+
+function loadSettings() {
+  const sc = document.getElementById('serving-count');
+  const gd = document.getElementById('garbage-day');
+  if(sc) sc.value = settings.servings || 4;
+  if(gd) gd.value = settings.garbageDay || '月曜・木曜';
+  const tog = document.getElementById('bento-toggle');
+  const detail = document.getElementById('bento-detail');
+  if(tog) tog.classList.toggle('selected', !!settings.bento);
+  if(detail) detail.style.display = settings.bento ? 'block' : 'none';
+  if (settings.bentoDays) {
+    document.querySelectorAll('.bento-day').forEach(el => {
+      el.classList.toggle('selected', settings.bentoDays.includes(el.dataset.day));
+    });
+  }
+  const lunchTog = document.getElementById('lunch-toggle');
+  const lunchDetail = document.getElementById('lunch-detail');
+  if(lunchTog) lunchTog.classList.toggle('selected', !!settings.weekdayLunch);
+  if(lunchDetail) lunchDetail.style.display = settings.weekdayLunch ? 'block' : 'none';
+  if (settings.lunchPrefs) {
+    document.querySelectorAll('.lunch-pref').forEach(el => {
+      el.classList.toggle('selected', settings.lunchPrefs.includes(el.dataset.pref));
+    });
+  }
+  const yahooIdEl = document.getElementById('yahoo-app-id');
+  if (yahooIdEl) yahooIdEl.value = settings.yahooAppId || '';
+  const apiKeyEl = document.getElementById('api-key');
+  if (apiKeyEl && settings.apiKey) apiKeyEl.value = settings.apiKey;
+  renderSaleTags();
+}
+
+function getSettings() {
+  const sc = document.getElementById('serving-count');
+  const gd = document.getElementById('garbage-day');
+  settings.servings = sc ? parseInt(sc.value) : 4;
+  settings.garbageDay = gd ? gd.value : '月曜・木曜';
+  settings.bento = document.getElementById('bento-toggle')?.classList.contains('selected') || false;
+  settings.bentoDays = [...document.querySelectorAll('.bento-day.selected')].map(el => el.dataset.day);
+  settings.weekdayLunch = document.getElementById('lunch-toggle')?.classList.contains('selected') || false;
+  settings.lunchPrefs = [...document.querySelectorAll('.lunch-pref.selected')].map(el => el.dataset.pref);
+  settings.yahooAppId = document.getElementById('yahoo-app-id')?.value.trim() || '';
+  saveData();
+  return settings;
+}
+
+function getFishDays(garbageDay) {
+  const dayMap = {'月':0,'火':1,'水':2,'木':3,'金':4,'土':5,'日':6};
+  const dayNames = ['月曜日','火曜日','水曜日','木曜日','金曜日','土曜日','日曜日'];
+  const parts = garbageDay.replace('曜日','曜').split('・');
+  return parts.map(p => {
+    const key = p.trim().replace('曜','').replace('日','');
+    const idx = dayMap[key];
+    if(idx === undefined) return null;
+    return dayNames[(idx - 1 + 7) % 7];
+  }).filter(Boolean);
+}
+
+function addSaleItem() {
+  const val = document.getElementById('sale-item').value.trim();
+  if (!val) return;
+  saleItems.push(val);
+  document.getElementById('sale-item').value = '';
+  saveData(); renderSaleTags();
+}
+
+function removeSaleItem(idx) { saleItems.splice(idx,1); saveData(); renderSaleTags(); }
+
+function renderSaleTags() {
+  const el = document.getElementById('sale-tags');
+  const btn = document.getElementById('replan-btn');
+  if (!el) return;
+  if (!saleItems.length) { el.innerHTML=''; if(btn)btn.style.display='none'; return; }
+  el.innerHTML = '<div style="margin-top:8px">' + saleItems.map((s,i) => `<span class="sale-tag">${s}<button onclick="removeSaleItem(${i})">✕</button></span>`).join('') + '</div>';
+  if(btn) btn.style.display = weekMenu ? 'block' : 'none';
+}
+
+async function generateMenu() {
+  const apiKey = getApiKey();
+  if (!apiKey) return alert('APIキーを入力して保存してください。\nGoogle Gemini（無料）が使えます。\nGemini APIキーは https://aistudio.google.com/app/apikey で無料取得できます。\nお持ちでない場合は「デモ献立を表示」をお試しください。');
+  const btn = document.getElementById('generate-btn');
+  btn.disabled=true; btn.textContent='生成中...';
+  document.getElementById('menu-container').innerHTML=`<div class="loading"><div class="loading-dots"><span></span><span></span><span></span></div><p>家族の情報と食材をもとに<br>献立を考えています...</p></div>`;
+  try {
+    const aiText = await callAI(buildPrompt(), apiKey, 5000);
+    weekMenu = JSON.parse(aiText.replace(/```json|```/g,'').trim());
+    saveData(); renderMenu(weekMenu); renderNutrition(); renderSaleTags();
+  } catch(e) {
+    document.getElementById('menu-container').innerHTML='<div class="empty-state"><div class="emoji">⚠️</div><p>生成に失敗しました。<br>APIキーを確認してください。</p></div>';
+  }
+  btn.disabled=false; btn.textContent='✨ AIで献立を生成する';
+}
+
+function buildPrompt() {
+  const s = getSettings();
+  const now = new Date();
+  const urgentIngs = ingredients
+    .filter(i => i.expiry && Math.ceil((new Date(i.expiry) - now) / 86400000) <= 3)
+    .map(i => i.name).join('、');
+  const ingList   = ingredients.map(i=>`${i.name}(${i.amount||'適量'}${i.expiry?'、期限:'+getExpiryText(i.expiry):''}${i.aiNotes?'、用途:'+i.aiNotes:''})` ).join('、');
+  const famList   = familyMembers.map(m=>`${m.name}(${m.age||''}、悩み:${m.concerns.join('・')||'なし'})`).join('、');
+  const instaList = instaRefs.map(r=>r.title).join('、');
+  const histGood  = cookHistory.filter(h=>h.good).map(h=>h.name).join('、');
+  const histBad   = cookHistory.filter(h=>h.bad).map(h=>h.name).join('、');
+  const dayMap={'月':0,'火':1,'水':2,'木':3,'金':4,'土':5,'日':6};
+  const dayNames=['月曜日','火曜日','水曜日','木曜日','金曜日','土曜日','日曜日'];
+  const gd = s.garbageDay || '月曜・木曜';
+  const fishDays = gd.split('・').map(p=>{
+    const key=p.trim().replace('曜','').replace('日','').replace('曜日','');
+    const idx=dayMap[key]; return idx!==undefined?dayNames[(idx-1+7)%7]:null;
+  }).filter(Boolean);
+  const bentoInfo = s.bento ? `平日は旦那さんのお弁当あり。夜の残りで作れない日(${s.bentoDays&&s.bentoDays.length?s.bentoDays.join('・'):'特になし'})は弁当専用メニューを提案。` : 'お弁当なし';
+  const lunchPrefsText = s.lunchPrefs && s.lunchPrefs.length ? s.lunchPrefs.map(p => ({diet:'ダイエット重視',quick:'15分以内',insta:'インスタレシピ活用',lowcarb:'低糖質'}[p]||p)).join('・') : 'なし';
+  const lunchInfo = s.weekdayLunch ? '平日の昼食は1人分（本人のみ）。こだわり：' + lunchPrefsText + '。15分以内で作れるシンプルなレシピを提案。' : '';
+  const saleInfo  = saleItems&&saleItems.length ? `今日の特売・旬（必ず使う）：${saleItems.join('、')}` : '';
+  return `あなたは家庭料理の献立プランナーです。以下の情報をもとに今週7日分の献立を考えてください。
+
+【何人分】${s.servings||4}人分（材料の量は${s.servings||4}人分で記載）
+【食材（期限が近いものを優先使用）】${ingList||'特になし'}
+${urgentIngs ? '【3日以内に期限切れ（必ず今週前半で使う）】' + urgentIngs : ''}
+【家族の情報】${famList||'特になし'}
+【参考にしたいレシピ】${instaList||'特になし'}
+【過去に好評だった料理（積極的に採用）】${histGood||'なし'}
+【過去に不評だった料理（避ける）】${histBad||'なし'}
+【生ゴミの日】${gd}（前日の${fishDays.join('と')}に必ず魚料理を入れること）
+【お弁当】${bentoInfo}
+${lunchInfo ? '【平日昼食】' + lunchInfo : ''}
+${saleInfo?'【'+saleInfo+'】':''}
+
+ルール：傷みやすい食材を週前半に使う、市販品はそのまま活用、家族の悩みに合った栄養を考慮、手軽さとトレンド感を意識。
+
+以下のJSON形式のみで返してください。他テキスト不要。
+{"days":[{"day":"月曜日","date":"","fish":false,"bentoNote":"","main":{"name":"料理名","ingredients":["材料1（${s.servings||4}人分）"],"steps":["手順1"],"time":"20分","nutrition":{"protein":"高","veggie":"中","carb":"中"}},"side1":{"name":"副菜名","ingredients":["材料1"],"steps":["手順1"],"time":"10分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"side2":{"name":"副菜名","ingredients":["材料1"],"steps":["手順1"],"time":"5分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"soup":{"name":"汁物名","ingredients":["材料1"],"steps":["手順1"],"time":"10分","nutrition":{"protein":"低","veggie":"中","carb":"低"}},"lunch":null,"bento":null}]}
+bentoNoteは「夜の残りで可」または「専用弁当あり」と記載。専用弁当が必要な日はbentoフィールドに{"name":"弁当名","ingredients":["材料"],"steps":["手順"],"time":"10分"}を入れる。魚の日はfish:trueにする。平日昼食がある場合はlunchフィールドに{"name":"昼食名","ingredients":["材料（1人分）"],"steps":["手順"],"time":"10分"}を入れる（土日はnull）。`;
+}
+
+async function replanMenu() {
+  const apiKey = getApiKey();
+  if (!apiKey) return alert('APIキーを入力して保存してください');
+  const btn = document.getElementById('replan-btn');
+  btn.disabled=true; btn.textContent='組み直し中...';
+  document.getElementById('menu-container').innerHTML=`<div class="loading"><div class="loading-dots"><span></span><span></span><span></span></div><p>特売・旬の食材を考慮して<br>組み直しています...</p></div>`;
+  try {
+    const aiText = await callAI(buildPrompt(), apiKey, 5000);
+    weekMenu = JSON.parse(aiText.replace(/```json|```/g,'').trim());
+    saveData(); renderMenu(weekMenu); renderNutrition(); renderSaleTags();
+  } catch(e) {
+    document.getElementById('menu-container').innerHTML='<div class="empty-state"><div class="emoji">⚠️</div><p>失敗しました。もう一度お試しください。</p></div>';
+  }
+  btn.disabled=false; btn.textContent='🔄 これを考慮して献立を組み直す';
+}
+
+function showDemoMenu() {
+  weekMenu={days:[
+    {day:"月曜日",date:"4/14",
+     main:{name:"鶏むね肉のハーブ焼き",ingredients:["鶏むね肉 2枚","にんにく 1片","オリーブオイル 大さじ2","ローズマリー 適量"],steps:["鶏肉に塩こしょうで下味をつける","フライパンにオイルとにんにくを熱する","皮目から焼きローズマリーを加えて両面焼く","蓋をして弱火で5分蒸し焼き"],time:"25分",nutrition:{protein:"高",veggie:"低",carb:"低"}},
+     side1:{name:"ほうれん草のごまあえ",ingredients:["ほうれん草 1束","白ごま 大さじ2","砂糖・醤油 各小さじ1"],steps:["ほうれん草をゆでて水気を絞る","調味料とごまで和える"],time:"10分",nutrition:{protein:"低",veggie:"高",carb:"低"}},
+     side2:{name:"きゅうりの浅漬け",ingredients:["きゅうり 2本","塩 小さじ1","昆布 5cm"],steps:["薄切りにして塩もみし昆布と漬ける"],time:"5分",nutrition:{protein:"低",veggie:"高",carb:"低"}},
+     soup:{name:"豆腐とわかめの味噌汁",ingredients:["豆腐 半丁","わかめ 適量","だし 2カップ","味噌 大さじ2"],steps:["だしを沸かし豆腐とわかめを入れる","味噌を溶き入れて完成"],time:"10分",nutrition:{protein:"中",veggie:"中",carb:"低"}}
+    },
+    {day:"火曜日",date:"4/15",
+     main:{name:"豚バラと大根の煮物",ingredients:["豚バラ肉 300g","大根 1/2本","醤油・みりん 各大さじ3","砂糖 大さじ1"],steps:["豚バラを切る","大根を下ゆでする","鍋に入れて20分煮込む"],time:"35分",nutrition:{protein:"高",veggie:"中",carb:"低"}},
+     side1:{name:"小松菜と人参の炒め物",ingredients:["小松菜 1束","にんじん 1/3本","ごま油 少々"],steps:["小松菜とにんじんを炒めごま油で味付け"],time:"8分",nutrition:{protein:"低",veggie:"高",carb:"低"}},
+     side2:{name:"冷奴",ingredients:["豆腐 1丁","しょうが","醤油 少々"],steps:["豆腐を切り薬味と醤油をかける"],time:"2分",nutrition:{protein:"中",veggie:"低",carb:"低"}},
+     soup:{name:"なめこの味噌汁",ingredients:["なめこ 1袋","豆腐 1/4丁","味噌 大さじ2"],steps:["だしを沸かしてなめこを加え味噌を溶く"],time:"8分",nutrition:{protein:"低",veggie:"中",carb:"低"}}
+    }
+  ]};
+  saveData(); renderMenu(weekMenu); renderNutrition();
+}
+
+function renderMenu(menu) {
+  document.getElementById('menu-container').innerHTML = menu.days.map((day,i)=>{
+    const badges = [];
+    if(day.fish) badges.push('<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:#2a5fa0;color:white">🐟 魚の日</span>');
+    if(day.bentoNote) badges.push(`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:#5a8a50;color:white">🍱 ${day.bentoNote}</span>`);
+    return `<div class="day-card">
+      <div class="day-header">
+        <span>${day.day} <span style="font-size:10px;color:#A08070">${day.date||''}</span></span>
+        <div style="display:flex;gap:4px">${badges.join('')}</div>
+      </div>
+      ${renderMealRow(day.main,'main',i,'main')}
+      ${day.side1?renderMealRow(day.side1,'side1',i,'side'):''}
+      ${day.side2?renderMealRow(day.side2,'side2',i,'side'):''}
+      ${day.soup?renderMealRow(day.soup,'soup',i,'soup'):''}
+      ${day.lunch?renderMealRow(day.lunch,'lunch',i,'lunch'):''}
+      ${day.bento?renderMealRow(day.bento,'bento',i,'bento'):''}
+    </div>`;
+  }).join('');
+}
+
+function renderMealRow(meal,type,dayIdx,labelType) {
+  if (!meal) return '';
+  const labels={main:['label-main','メイン'],side:['label-side','副菜'],soup:['label-soup','汁物'],bento:['label-bento','お弁当'],lunch:['label-lunch','🥗昼食']};
+  const [cls,text]=labels[labelType];
+  const key=`${dayIdx}-${type}`, checks=mealChecks[key]||{};
+  return `<div class="meal-row">
+    <span class="meal-label ${cls}">${text}</span>
+    <div class="meal-info">
+      <div class="meal-name" onclick="showRecipe(${dayIdx},'${type}')">${meal.name} <span style="font-size:10px;color:#999">⏱${meal.time||''}</span></div>
+      <div class="meal-actions">
+        <button class="check-btn ${checks.made?'checked-made':''}" onclick="toggleCheck('${key}','made',this,'${meal.name.replace(/'/g,'')}')">✅ 作った</button>
+        <button class="check-btn ${checks.skip?'checked-skip':''}" onclick="toggleCheck('${key}','skip',this,'${meal.name.replace(/'/g,'')}')">⏭ 作らず</button>
+        <button class="check-btn ${checks.good?'checked-good':''}" onclick="toggleCheck('${key}','good',this,'${meal.name.replace(/'/g,'')}')">👍 好評</button>
+        <button class="check-btn ${checks.bad?'checked-bad':''}"  onclick="toggleCheck('${key}','bad',this,'${meal.name.replace(/'/g,'')}')">👎 不評</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleCheck(key,type,btn,mealName) {
+  if (!mealChecks[key]) mealChecks[key]={};
+  mealChecks[key][type]=!mealChecks[key][type];
+  const classMap={made:'checked-made',skip:'checked-skip',good:'checked-good',bad:'checked-bad'};
+  btn.classList.toggle(classMap[type]);
+  const existing=cookHistory.find(h=>h.key===key);
+  if (existing) { existing[type]=mealChecks[key][type]; }
+  else { cookHistory.push({key,name:mealName,date:new Date().toLocaleDateString('ja-JP'),made:false,good:false,bad:false,[type]:true}); }
+  saveData();
+}
+
+function showRecipe(dayIdx,type) {
+  const meal=weekMenu.days[dayIdx][type]; if (!meal) return;
+  document.getElementById('modal-title').textContent=meal.name;
+  document.getElementById('modal-content').innerHTML=`
+    <div class="recipe-section"><h4>⏱ 調理時間</h4><p>${meal.time||'不明'}</p></div>
+    <div class="recipe-section"><h4>🛒 材料</h4><p>${(meal.ingredients||[]).join('、')}</p></div>
+    <div class="recipe-section"><h4>👩‍🍳 作り方</h4><ol>${(meal.steps||[]).map(s=>`<li>${s}</li>`).join('')}</ol></div>
+    <button class="btn btn-green" style="margin-top:8px" onclick="addToShopping(${dayIdx},'${type}')">🛒 材料を買い物リストに追加</button>
+  `;
+  document.getElementById('recipe-modal').classList.add('open');
+}
+
+// ── 買い物リスト ──
+function generateShoppingList() {
+  if (!weekMenu) return alert('先に献立を生成してください');
+  const existing=ingredients.map(i=>i.name);
+  const items=[];
+  weekMenu.days.forEach(day=>{
+    ['main','side1','side2','soup'].forEach(type=>{
+      const meal=day[type]; if (!meal) return;
+      (meal.ingredients||[]).forEach(ing=>{
+        const name=ing.replace(/\s*[\d\.]+[gmlkg個本枚袋缶丁束カップ大さじ小さじ適量少々]+.*/,'').trim();
+        if (!existing.some(e=>e.includes(name)||name.includes(e)) && !items.some(i=>i.name===ing))
+          items.push({id:Date.now()+Math.random(),name:ing,category:guessCategory(name),checked:false,auto:true});
+      });
+    });
+  });
+  shoppingList=[...items,...shoppingList.filter(i=>!i.auto)];
+  saveData(); renderShoppingList();
+  alert(`${items.length}品を買い物リストに追加しました`);
+}
+
+function guessCategory(name) {
+  if (/鶏|豚|牛|肉|魚|鮭|えび|あじ|さば|ぶり|まぐろ/.test(name)) return '肉・魚';
+  if (/大根|にんじん|玉ねぎ|キャベツ|ほうれん草|小松菜|きゅうり|トマト|なす|じゃがいも|ブロッコリー|ピーマン/.test(name)) return '野菜・果物';
+  if (/豆腐|牛乳|チーズ|卵|ヨーグルト|バター|生クリーム/.test(name)) return '乳製品・卵';
+  if (/醤油|みりん|砂糖|塩|酢|味噌|油|ごま|だし|酒|コチュジャン|ナンプラー/.test(name)) return '調味料';
+  return 'その他';
+}
+
+function addShoppingItem() {
+  const name=document.getElementById('shop-item').value.trim(); if (!name) return;
+  shoppingList.push({id:Date.now(),name,category:document.getElementById('shop-cat').value,checked:false});
+  saveData(); renderShoppingList(); document.getElementById('shop-item').value='';
+}
+
+function addToShopping(dayIdx,type) {
+  const meal=weekMenu.days[dayIdx][type];
+  (meal.ingredients||[]).forEach((ing,i)=>shoppingList.push({id:Date.now()+i,name:ing,category:guessCategory(ing),checked:false}));
+  saveData(); closeModal('recipe-modal'); alert(`${meal.name}の材料を追加しました`);
+}
+
+function toggleShoppingItem(id) {
+  const item=shoppingList.find(i=>i.id===id); if (item){item.checked=!item.checked; saveData(); renderShoppingList();}
+}
+
+function clearCheckedItems() { shoppingList=shoppingList.filter(i=>!i.checked); saveData(); renderShoppingList(); }
+
+function renderShoppingList() {
+  const el=document.getElementById('shopping-list');
+  if (!shoppingList.length) {
+    el.innerHTML='<div class="empty-state"><div class="emoji">🛒</div><p>「献立から自動生成」で<br>必要な食材が自動でリストアップされます</p></div>'; return;
+  }
+  const cats=[...new Set(shoppingList.map(i=>i.category))];
+  el.innerHTML=cats.map(cat=>{
+    const items=shoppingList.filter(i=>i.category===cat);
+    return `<div class="shopping-cat">${cat}</div>
+    <div class="insta-card" style="padding:8px 14px">
+      ${items.map(item=>`
+        <div class="shopping-item">
+          <input type="checkbox" ${item.checked?'checked':''} onchange="toggleShoppingItem(${item.id})">
+          <label class="${item.checked?'done':''}" onclick="toggleShoppingItem(${item.id})">${item.name}</label>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ── 栄養バランス ──
+function renderNutrition() {
+  if (!weekMenu) return;
+  let p=0,v=0,c=0,total=0;
+  weekMenu.days.forEach(day=>{
+    ['main','side1','side2','soup'].forEach(type=>{
+      const meal=day[type]; if (!meal||!meal.nutrition) return;
+      const n=meal.nutrition;
+      p+=n.protein==='高'?3:n.protein==='中'?2:1;
+      v+=n.veggie==='高'?3:n.veggie==='中'?2:1;
+      c+=n.carb==='高'?3:n.carb==='中'?2:1;
+      total++;
+    });
+  });
+  const max=total*3;
+  const pp=Math.round(p/max*100), vp=Math.round(v/max*100), cp=Math.round(c/max*100);
+  const grade=pp>60&&vp>50?'🌟':pp>40&&vp>40?'😊':'😐';
+  const comment=vp<40?'野菜が少し不足気味です。副菜に野菜を多めに取り入れましょう':
+                pp<40?'タンパク質をもう少し増やせると理想的です':
+                pp>60&&vp>50?'バランス良好！タンパク質と野菜がしっかり取れています':'まずまずのバランスです';
+
+  document.getElementById('nutrition-content').innerHTML=`
+    <div class="nutrition-card">
+      <h3>今週の栄養バランス（${weekMenu.days.length}日分）</h3>
+      <div class="balance-grade">${grade}</div>
+      <div class="balance-comment">${comment}</div>
+      <div style="margin-top:14px">
+        <div class="nutrient-row">
+          <span class="nutrient-label">🥩 タンパク質</span>
+          <div class="nutrient-bar-wrap"><div class="nutrient-bar" style="width:${pp}%;background:var(--accent)"></div></div>
+          <span class="nutrient-val">${pp}%</span>
+        </div>
+        <div class="nutrient-row">
+          <span class="nutrient-label">🥦 野菜</span>
+          <div class="nutrient-bar-wrap"><div class="nutrient-bar" style="width:${vp}%;background:var(--green)"></div></div>
+          <span class="nutrient-val">${vp}%</span>
+        </div>
+        <div class="nutrient-row">
+          <span class="nutrient-label">🍚 炭水化物</span>
+          <div class="nutrient-bar-wrap"><div class="nutrient-bar" style="width:${cp}%;background:var(--blue)"></div></div>
+          <span class="nutrient-val">${cp}%</span>
+        </div>
+      </div>
+    </div>
+    <div class="nutrition-card">
+      <h3>家族別の注目栄養素</h3>
+      ${familyMembers.length?familyMembers.map(m=>`
+        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:500;margin-bottom:3px">${m.name}</div>
+          <div style="font-size:11px;color:var(--brown);line-height:1.6">${getNutrientTips(m.concerns)}</div>
+        </div>`).join(''):'<p style="font-size:12px;color:#999">家族タブでメンバーを追加してください</p>'}
+    </div>
+  `;
+}
+
+function getNutrientTips(concerns) {
+  const map={
+    'ニキビ・吹き出物':'→ ビタミンA・B2（レバー・卵・乳製品）を意識',
+    '肌荒れ・乾燥肌':'→ ビタミンA・E、良質な脂質（魚・ナッツ）を',
+    '身長を伸ばしたい':'→ カルシウム（乳製品・小魚）＋ビタミンD（鮭・きのこ）が重要',
+    '体重を減らしたい':'→ 食物繊維（野菜・きのこ）を増やし糖質は適度に',
+    '筋力アップしたい':'→ タンパク質（肉・魚・豆類）を各食事にしっかり',
+    '疲れやすい・疲労回復':'→ ビタミンB1（豚肉・大豆）と鉄分（ほうれん草）を',
+    '貧血気味':'→ 鉄分（赤身肉・レバー・ほうれん草）＋ビタミンCを一緒に',
+    '便秘気味':'→ 食物繊維（野菜・海藻・きのこ）と水分をしっかり',
+    '骨を強くしたい':'→ カルシウム（乳製品・小魚・豆腐）＋ビタミンKを意識',
+    '血糖値が気になる':'→ 食物繊維を多く、GIの低い食品（玄米・野菜）を選ぶ',
+    'ストレスを和らげたい':'→ トリプトファン（豆腐・バナナ・ナッツ）を意識',
+    '生理痛・PMS':'→ 鉄分・マグネシウム（ナッツ・海藻・豆類）を',
+  };
+  const tips=concerns.filter(c=>map[c]).map(c=>map[c]);
+  return tips.length?tips.join('<br>'):' 特になし';
+}
+
+async function getNutritionAdvice() {
+  const apiKey=getApiKey();
+  if (!apiKey) return alert('献立タブでAPIキーを入力して保存してください');
+  if (!weekMenu) return alert('先に献立を生成してください');
+  document.getElementById('nutrition-advice').innerHTML=`<div class="loading"><div class="loading-dots"><span></span><span></span><span></span></div><p>分析中...</p></div>`;
+  const famList=familyMembers.map(m=>`${m.name}(${m.concerns.join('・')||'なし'})`).join('、');
+  const menuList=weekMenu.days.map(d=>`${d.day}:${d.main?.name||''}、${d.side1?.name||''}、${d.soup?.name||''}`).join('。');
+  try {
+    const naText = await callAI(`家族:${famList}\n今週の献立:${menuList}\n\nこの献立の栄養バランスを評価して、家族の健康目標に合った具体的なアドバイスを200字程度で教えてください。`, apiKey, 600);
+    document.getElementById('nutrition-advice').innerHTML=`<div class="advice-card"><h4>🤖 AIアドバイス</h4><p>${naText}</p></div>`;
+  } catch(e) {
+    document.getElementById('nutrition-advice').innerHTML='<div class="advice-card"><h4>⚠️</h4><p>取得に失敗しました</p></div>';
+  }
+}
+
+// ── 履歴 ──
+function showHistory(filter) {
+  ['all','good','bad'].forEach(f=>{
+    document.getElementById(`hist-${f}`).className=f===filter?'btn btn-primary':'btn btn-secondary';
+  });
+  let list=[...cookHistory].reverse();
+  if (filter==='good') list=list.filter(h=>h.good);
+  if (filter==='bad')  list=list.filter(h=>h.bad);
+  const el=document.getElementById('history-list');
+  if (!list.length) { el.innerHTML='<div class="empty-state"><div class="emoji">📖</div><p>まだ履歴がありません<br>献立を作ったらチェックしてみてください</p></div>'; return; }
+  el.innerHTML=list.map(h=>`
+    <div class="history-item">
+      <div class="history-date">${h.date||''}</div>
+      <div class="history-name">${h.name}</div>
+      <div class="history-tags">
+        ${h.made?'<span class="history-tag tag-made">✅ 作った</span>':''}
+        ${h.good?'<span class="history-tag tag-good">👍 好評</span>':''}
+        ${h.bad ?'<span class="history-tag tag-bad">👎 不評</span>':''}
+      </div>
+    </div>`).join('');
+}
+
+
+
+// ── AI商品分析 ──
+async function enrichProductWithAI() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    alert('AI分析にはAPIキーが必要です。献立タブでGemini APIキーを入力して保存してください。');
+    return;
+  }
+  const nameVal  = (document.getElementById('bc-name')  && document.getElementById('bc-name').value.trim())  || '';
+  const makerVal = (document.getElementById('bc-maker') && document.getElementById('bc-maker').value.trim()) || '';
+  if (!nameVal) { alert('先に商品名を入力してください'); return; }
+
+  const resultDiv = document.getElementById('bc-ai-result');
+  resultDiv.style.display = 'block';
+  resultDiv.textContent = '🔄 AIが商品を分析中...';
+
+  try {
+    const enText = await callAI(
+      '日本の市販食品「' + nameVal + '"' + (makerVal ? '（メーカー：' + makerVal + '）' : '') + 'について教えてください。'
+      + '以下のJSONのみで返してください（他テキスト不要）：'
+      + '{"category":"肉魚/野菜/乳製品卵/調味料市販品/乾物缶詰/冷凍食品/その他","use":"料理での使い方（25文字以内）","notes":"レシピ活用メモ（塩分・調理法・保存方法など50文字以内）","quantity":"標準的な内容量（例:500g・1袋など、不明なら空文字）"}',
+      apiKey, 300
+    );
+    {
+      const text   = enText.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(text);
+      const catMap = {
+        '肉魚':'肉・魚','野菜':'野菜','乳製品卵':'乳製品・卵',
+        '調味料市販品':'調味料・市販品','乾物缶詰':'乾物・缶詰',
+        '冷凍食品':'冷凍食品','その他':'その他'
+      };
+      // カテゴリ更新
+      const cat = catMap[parsed.category] || guessCategory(nameVal);
+      document.getElementById('bc-category').value = cat;
+      // 内容量が空で AI が提案した場合は補完
+      const amountEl = document.getElementById('bc-amount');
+      if (amountEl && !amountEl.value.trim() && parsed.quantity) amountEl.value = parsed.quantity;
+      // AI メモ保存
+      const notesText = parsed.use + '。' + parsed.notes;
+      document.getElementById('bc-ai-notes').value = notesText;
+      // 結果表示
+      resultDiv.innerHTML = '🤖 <b>' + parsed.use + '</b><br><span style="color:#555">' + parsed.notes + '</span>';
+    }
+  } catch(e) {
+    resultDiv.textContent = '⚠️ 分析に失敗しました。もう一度試してください。';
+  }
+}
+
+// ── 食材編集 ──
+function editIngredient(id) {
+  const ing = ingredients.find(i => i.id === id);
+  if (!ing) return;
+  document.getElementById('edit-ing-id').value = id;
+  document.getElementById('edit-name').value = ing.name;
+  document.getElementById('edit-amount').value = ing.amount || '';
+  document.getElementById('edit-expiry').value = ing.expiry || '';
+  document.getElementById('edit-category').value = ing.category || 'その他';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function saveIngredientEdit() {
+  const id = parseInt(document.getElementById('edit-ing-id').value);
+  const ing = ingredients.find(i => i.id === id);
+  if (!ing) return;
+  const newName = document.getElementById('edit-name').value.trim();
+  if (!newName) { alert('食材名を入力してください'); return; }
+  ing.name = newName;
+  ing.amount = document.getElementById('edit-amount').value.trim();
+  ing.expiry = document.getElementById('edit-expiry').value;
+  ing.category = document.getElementById('edit-category').value;
+  saveData(); renderIngredients(); closeModal('edit-modal');
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:var(--cream);padding:10px 20px;border-radius:20px;font-size:12px;z-index:9999;white-space:nowrap';
+  toast.textContent = '✅ ' + ing.name + 'を更新しました';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+// ── 買い足し ──
+function restockIngredient(id) {
+  const ing = ingredients.find(i => i.id === id);
+  if (!ing) return;
+  document.getElementById('restock-ing-id').value = id;
+  document.getElementById('restock-ing-label').textContent = ing.name;
+  document.getElementById('restock-current').textContent = ing.amount || '（未登録）';
+  document.getElementById('restock-amount').value = '';
+  document.getElementById('restock-expiry').value = '';
+  document.getElementById('restock-modal').classList.add('open');
+}
+
+function saveRestock() {
+  const id = parseInt(document.getElementById('restock-ing-id').value);
+  const ing = ingredients.find(i => i.id === id);
+  if (!ing) return;
+  const newAmount = document.getElementById('restock-amount').value.trim();
+  const newExpiry = document.getElementById('restock-expiry').value;
+  if (!newAmount) { alert('新しい量を入力してください'); return; }
+  ing.amount = newAmount;
+  if (newExpiry) ing.expiry = newExpiry;
+  saveData(); renderIngredients(); closeModal('restock-modal');
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:var(--cream);padding:10px 20px;border-radius:20px;font-size:12px;z-index:9999;white-space:nowrap';
+  toast.textContent = '🛒 ' + ing.name + 'の在庫を更新しました';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+// ── データ管理 ──
+function exportData() {
+  const data = {
+    version: '2.1.0',
+    exportedAt: new Date().toISOString(),
+    ingredients: ingredients,
+    familyMembers: familyMembers,
+    instaRefs: instaRefs,
+    weekMenu: weekMenu,
+    mealChecks: mealChecks,
+    shoppingList: shoppingList,
+    cookHistory: cookHistory,
+    consumeHistory: consumeHistory,
+    saleItems: saleItems,
+    settings: settings
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'uchigohon_backup_' + new Date().toLocaleDateString('ja-JP').replace(/\//g, '-') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (confirm('現在のデータをすべて上書きしますか？\nこの操作は取り消せません。')) {
+        if (data.ingredients)    { ingredients    = data.ingredients;    localStorage.setItem('uchi_ing',     JSON.stringify(ingredients)); }
+        if (data.familyMembers)  { familyMembers  = data.familyMembers;  localStorage.setItem('uchi_fam',     JSON.stringify(familyMembers)); }
+        if (data.instaRefs)      { instaRefs      = data.instaRefs;      localStorage.setItem('uchi_ins',     JSON.stringify(instaRefs)); }
+        if (data.weekMenu)       { weekMenu       = data.weekMenu;       localStorage.setItem('uchi_menu',    JSON.stringify(weekMenu)); }
+        if (data.mealChecks)     { mealChecks     = data.mealChecks;     localStorage.setItem('uchi_chk',     JSON.stringify(mealChecks)); }
+        if (data.shoppingList)   { shoppingList   = data.shoppingList;   localStorage.setItem('uchi_shop',    JSON.stringify(shoppingList)); }
+        if (data.cookHistory)    { cookHistory    = data.cookHistory;    localStorage.setItem('uchi_hist',    JSON.stringify(cookHistory)); }
+        if (data.consumeHistory) { consumeHistory = data.consumeHistory; localStorage.setItem('uchi_consume', JSON.stringify(consumeHistory)); }
+        if (data.saleItems)      { saleItems      = data.saleItems;      localStorage.setItem('uchi_sale',    JSON.stringify(saleItems)); }
+        if (data.settings)       { settings       = data.settings;       localStorage.setItem('uchi_set',     JSON.stringify(settings)); }
+        renderIngredients(); renderFamily(); renderInsta(); renderUseLog(); loadSettings();
+        if (weekMenu) renderMenu(weekMenu);
+        alert('データを復元しました！');
+      }
+    } catch(err) {
+      alert('ファイルの読み込みに失敗しました。正しいJSONファイルか確認してください。');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ── モーダル ──
+function closeModalBg(e,id) { if(e.target.id===id) closeModal(id); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ══════════════════════════════════════════════════
+// ── APIキー取得ヘルパー ──
+// settings.apiKey（localStorage）を優先し、なければ入力欄の値を使う
+// ══════════════════════════════════════════════════
+function getApiKey() {
+  const stored = settings.apiKey || '';
+  if (stored) return stored;
+  const el = document.getElementById('api-key');
+  return (el && el.value.trim()) || '';
+}
+
+// ══════════════════════════════════════════════════
+// ── 画像圧縮ユーティリティ ──
+// スマホ写真（5〜15MB）→ 最大1024px・JPEG圧縮で API送信可能サイズに縮小
+// ══════════════════════════════════════════════════
+async function compressImage(file, maxPx, quality) {
+  maxPx = maxPx || 1024;
+  quality = quality || 0.80;
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      // 長辺を maxPx に収める
+      if (w > h) { if (w > maxPx) { h = Math.round(h * maxPx / w); w = maxPx; } }
+      else        { if (h > maxPx) { w = Math.round(w * maxPx / h); h = maxPx; } }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error('画像変換に失敗しました')); return; }
+        const reader = new FileReader();
+        reader.onload = () => resolve({ base64: reader.result.split(',')[1], mimeType: 'image/jpeg' });
+        reader.onerror = () => reject(new Error('ファイル読み込みに失敗しました'));
+        reader.readAsDataURL(blob);
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('画像の読み込みに失敗しました')); };
+    img.src = url;
+  });
+}
+
+// ══════════════════════════════════════════════════
+// ── 安定したJSONパーサー ──
+// Geminiが ```json ... ``` や余分なテキストを付けて返しても対応
+// ══════════════════════════════════════════════════
+function safeParseJson(text) {
+  // コードブロック除去
+  let clean = text.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+  // 先頭の { 〜 末尾の } を抜き出す
+  const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+  if (s !== -1 && e > s) clean = clean.slice(s, e + 1);
+  return JSON.parse(clean);
+}
+
+// ══════════════════════════════════════════════════
+// ── Gemini 使用可能モデルを自動取得（キャッシュ付き）──
+// ══════════════════════════════════════════════════
+let _geminiModelCache = null;
+async function fetchGeminiModels(key) {
+  if (_geminiModelCache) return _geminiModelCache;
+  try {
+    const res = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models?key=' + key + '&pageSize=100'
+    );
+    const data = await res.json();
+    if (!data.models) return [];
+    // generateContent に対応しているモデルのみ、軽量な順に並べる
+    const list = data.models
+      .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map(m => m.name.replace('models/', ''))
+      .filter(n => !/embedding|aqa|text-bison|chat-bison/.test(n))
+      .sort((a, b) => {
+        // flash-lite / flash / pro の順（軽い＝速い＝無料枠消費少）
+        const score = n => n.includes('lite') ? 0 : n.includes('flash') ? 1 : n.includes('pro') ? 2 : 3;
+        return score(a) - score(b);
+      });
+    _geminiModelCache = list;
+    return list;
+  } catch(e) { return []; }
+}
+
+// ══════════════════════════════════════════════════
+// ── callAI : テキストのみのAI呼び出し ──
+// Gemini（AIza...）と Claude（sk-ant...）の両方に対応
+// ══════════════════════════════════════════════════
+// ── Gemini API 共通呼び出し（モデル自動検出）──
+async function _callGemini(body, key) {
+  // Step1: APIから使えるモデル一覧を取得
+  let models = await fetchGeminiModels(key);
+  // 取得できなかった場合は既知のフォールバックを使う
+  if (!models.length) {
+    models = ['gemini-2.0-flash-lite','gemini-2.0-flash','gemini-1.5-flash-8b','gemini-1.5-flash-latest'];
+  }
+  const errors = [];
+  for (const model of models) {
+    try {
+      const res = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key,
+        { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }
+      );
+      const data = await res.json();
+      if (data.error) {
+        const code = data.error.code, msg = data.error.message || '';
+        if (code === 400 && (msg.includes('API_KEY') || msg.toLowerCase().includes('invalid'))) {
+          throw new Error('__FATAL__APIキーが無効です。Google AI Studioで正しいキー（AIzaSy...）を確認してください。');
+        }
+        errors.push(model + ':' + code);
+        continue; // 404も429も次のモデルを試す
+      }
+      if (!data.candidates || !data.candidates[0]) { errors.push(model + ':no_candidates'); continue; }
+      return data.candidates[0].content.parts[0].text; // ✅ 成功
+    } catch(e) {
+      if (e.message.startsWith('__FATAL__')) throw new Error(e.message.replace('__FATAL__',''));
+      errors.push(model + ':err');
+    }
+  }
+  const all429 = errors.length > 0 && errors.every(e => e.includes('429'));
+  if (all429) throw new Error('本日のGemini無料枠が上限に達しています。日本時間の午後4〜5時以降にリセットされます。');
+  throw new Error('全モデル失敗。詳細: ' + errors.join(', ') + '\n🔍 スキャンタブの「接続診断」で状況を確認してください。');
+}
+
+async function callAI(prompt, apiKey, maxTokens) {
+  const key = (apiKey || getApiKey() || '').replace(/[\u0000-\u001F\u007F-\u009F\uFEFF\u200B\s]/g,'').trim();
+  if (!key) throw new Error('APIキーが設定されていません。スキャンタブ上部にGemini APIキーを貼り付けて「保存」を押してください。');
+  if (key.toLowerCase().startsWith('sk-ant')) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:maxTokens||2000, messages:[{role:'user',content:prompt}] })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message || 'Claude API エラー');
+    return d.content[0].text;
+  }
+  return _callGemini({
+    contents:[{parts:[{text:prompt}]}],
+    generationConfig:{maxOutputTokens:maxTokens||2000,temperature:0.7}
+  }, key);
+}
+
+// ══════════════════════════════════════════════════
+// ── callAIWithImage : 画像付きAI呼び出し ──
+// ══════════════════════════════════════════════════
+async function callAIWithImage(prompt, base64, mimeType, apiKey) {
+  const key = (apiKey || getApiKey() || '').replace(/[\u0000-\u001F\u007F-\u009F\uFEFF\u200B\s]/g,'').trim();
+  if (!key) throw new Error('APIキーが設定されていません。スキャンタブ上部にGemini APIキーを貼り付けて「保存」を押してください。');
+  if (key.toLowerCase().startsWith('sk-ant')) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:1024,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:base64}},
+          {type:'text',text:prompt}
+        ]}]
+      })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error('Claude API エラー: ' + (d.error.message||''));
+    return d.content[0].text;
+  }
+  return _callGemini({
+    contents:[{parts:[
+      {inline_data:{mime_type:'image/jpeg',data:base64}},
+      {text:prompt}
+    ]}],
+    generationConfig:{maxOutputTokens:1024,temperature:0.2}
+  }, key);
+}
+
+// ══════════════════════════════════════════════════
+// ── 商品パッケージ写真認識（スキャンタブの専用ボタンから）──
+// ══════════════════════════════════════════════════
+async function analyzeProductPhoto(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    document.getElementById('scan-result').innerHTML = `<div class="advice-card"><h4>⚠️ APIキーが必要です</h4><p>上の入力欄にGemini APIキーを貼り付けて「保存」を押してください。</p></div>`;
+    event.target.value = '';
+    return;
+  }
+  document.getElementById('scan-result').innerHTML = `<div class="loading"><div class="loading-dots"><span></span><span></span><span></span></div><p>写真を圧縮してAIに送信中...</p></div>`;
+  try {
+    // ▼ 重要：スマホ写真（5〜15MB）を1024px以下に圧縮してから送信
+    const { base64 } = await compressImage(file, 1024, 0.80);
+    const aiText = await callAIWithImage(
+      '写真に写っている商品パッケージを見て、商品情報をJSON形式のみで返してください。'
+      + '{"name":"商品名（日本語で正確に）","quantity":"内容量（例:500g・1袋・12本。不明なら空文字）","category":"肉魚/野菜/乳製品卵/調味料市販品/乾物缶詰/冷凍食品/その他のいずれか","use":"料理での主な使い方（25文字以内）","notes":"調理・保存メモ（50文字以内）"}'
+      + '。商品が全く識別できない場合のみ{"error":"識別不可"}を返す。余分なテキスト・説明は一切不要。',
+      base64, 'image/jpeg', apiKey
+    );
+    const parsed = safeParseJson(aiText);
+    if (parsed.error) {
+      document.getElementById('scan-result').innerHTML =
+        `<div class="advice-card"><h4>📷 もう少し近づいて撮影してください</h4><p>商品名や文字がはっきり写るように撮影し直すと認識率が上がります。バーコードを使う方法もあります。</p></div>`;
+    } else {
+      const catMap = {'肉魚':'肉・魚','野菜':'野菜','乳製品卵':'乳製品・卵','調味料市販品':'調味料・市販品','乾物缶詰':'乾物・缶詰','冷凍食品':'冷凍食品','その他':'その他'};
+      const cat = catMap[parsed.category] || guessCategory(parsed.name || '');
+      showProductScanResult(parsed.name, parsed.quantity, cat, parsed.use, parsed.notes, '📸 AI写真認識');
+    }
+  } catch(e) {
+    const msg = e.message || '';
+    const isQuota = msg.includes('上限') || msg.includes('quota') || msg.includes('429') || msg.includes('リセット');
+    const isInvalid = msg.includes('無効') || msg.includes('INVALID') || msg.includes('API_KEY');
+    let title = 'エラーが発生しました';
+    let hint = `スキャンタブの「🔍 接続診断」ボタンを押すと原因が分かります。`;
+    if (isQuota) { title = '利用制限中です'; hint = '日本時間の午後4〜5時以降にリセットされます。<br>「🔍 接続診断」で詳しい状態を確認できます。'; }
+    if (isInvalid) { title = 'APIキーが無効です'; hint = 'Google AI Studioで新しいキーを取得し直してください。<br>「🔍 接続診断」で確認できます。'; }
+    document.getElementById('scan-result').innerHTML =
+      `<div class="advice-card"><h4>⚠️ ${title}</h4>`
+      + `<p style="word-break:break-word;font-size:11px;color:#666">${msg}</p>`
+      + `<p style="margin-top:8px;font-size:11px;color:#888">${hint}</p></div>`;
+  }
+  event.target.value = '';
+}
+
+// ── バーコードモーダルから呼ぶ商品写真認識 ──
+async function analyzeProductPhotoFromModal(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const apiKey = getApiKey();
+  if (!apiKey) { alert('APIキーが必要です。スキャンタブ上部にAPIキーを貼り付けて「保存」を押してください。'); event.target.value=''; return; }
+
+  const content = document.getElementById('scan-modal-content');
+  const prevHTML = content.innerHTML;
+  content.innerHTML = `<div class="loading"><div class="loading-dots"><span></span><span></span><span></span></div><p>写真を圧縮してAIに送信中...</p></div>`;
+  document.getElementById('scan-modal').classList.add('open');
+
+  try {
+    const { base64 } = await compressImage(file, 1024, 0.80);
+    const aiText = await callAIWithImage(
+      '写真に写っている商品パッケージを見て、商品情報をJSON形式のみで返してください。'
+      + '{"name":"商品名（日本語で正確に）","quantity":"内容量（例:500g・1袋・12本。不明なら空文字）","category":"肉魚/野菜/乳製品卵/調味料市販品/乾物缶詰/冷凍食品/その他のいずれか","use":"料理での主な使い方（25文字以内）","notes":"調理・保存メモ（50文字以内）"}'
+      + '。商品が全く識別できない場合のみ{"error":"識別不可"}を返す。余分なテキスト・説明は一切不要。',
+      base64, 'image/jpeg', apiKey
+    );
+    const parsed = safeParseJson(aiText);
+    if (parsed.error) {
+      content.innerHTML = prevHTML;
+      alert('商品を認識できませんでした。商品名がはっきり写るように近づいて撮影し直してください。');
+    } else {
+      const catMap = {'肉魚':'肉・魚','野菜':'野菜','乳製品卵':'乳製品・卵','調味料市販品':'調味料・市販品','乾物缶詰':'乾物・缶詰','冷凍食品':'冷凍食品','その他':'その他'};
+      const cat = catMap[parsed.category] || guessCategory(parsed.name || '');
+      showProductScanResult(parsed.name, parsed.quantity, cat, parsed.use, parsed.notes, '📸 AI写真認識');
+    }
+  } catch(e) {
+    content.innerHTML = `<div class="advice-card" style="margin:0"><h4>⚠️ エラー</h4><p style="word-break:break-word">${e.message}</p><button class="btn btn-secondary" style="margin-top:10px" onclick="document.getElementById('scan-modal-content').innerHTML='${prevHTML.replace(/'/g,"\\'")}'"  >← 戻る</button></div>`;
+  }
+  event.target.value = '';
+}
+
+// ── 商品認識結果をスキャンモーダルに表示 ──
+function showProductScanResult(name, quantity, category, useText, notes, sourceLabel) {
+  const catOptions = ['肉・魚','野菜','乳製品・卵','調味料・市販品','乾物・缶詰','冷凍食品','その他']
+    .map((v,i) => {
+      const icons = ['🥩','🥦','🥛','🫙','📦','🧊','📋'];
+      return '<option value="'+v+'" '+(v===category?'selected':'')+'>' + icons[i] + ' ' + v + '</option>';
+    }).join('');
+  const safeN = (name||'').replace(/"/g,'&quot;');
+  const safeQ = (quantity||'').replace(/"/g,'&quot;');
+  const notesVal = ((useText||'') + (notes ? '。' + notes : '')).replace(/"/g,'&quot;');
+
+  document.getElementById('scan-modal-title').textContent = '商品を認識しました ✅';
+  document.getElementById('scan-modal-content').innerHTML =
+    '<div style="background:var(--warm);border-radius:10px;padding:11px 12px;margin-bottom:10px">'
+    + '<div style="font-size:13px;font-weight:500">' + (name||'（商品名不明）') + '</div>'
+    + (quantity ? '<div style="font-size:11px;color:#888;margin-top:2px">📦 内容量: ' + quantity + '</div>' : '')
+    + '<div style="font-size:10px;color:#bbb;margin-top:3px">' + (sourceLabel||'') + '</div>'
+    + '</div>'
+    + ((useText||notes)
+      ? '<div style="background:#EFF7F1;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11px;color:#3a7a3a;line-height:1.6">'
+        + '🤖 ' + (useText||'') + (notes ? '<br><span style="color:#555">' + notes + '</span>' : '')
+        + '</div>'
+      : '')
+    + '<input type="text" id="bc-name" value="' + safeN + '" placeholder="食材名・商品名" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:12px;background:var(--cream);margin-bottom:8px;font-family:inherit">'
+    + '<div style="display:flex;gap:6px;margin-bottom:8px">'
+    + '<input type="text" id="bc-amount" value="' + safeQ + '" placeholder="量（例：1袋・500g）" style="flex:1;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:12px;background:var(--cream);font-family:inherit">'
+    + '<input type="date" id="bc-expiry" style="flex:1;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:12px;background:var(--cream)">'
+    + '</div>'
+    + '<select id="bc-category" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:12px;background:var(--cream);margin-bottom:12px;font-family:inherit">' + catOptions + '</select>'
+    + '<input type="hidden" id="bc-ai-notes" value="' + notesVal + '">'
+    + '<button class="btn btn-primary" onclick="addFromBarcode()">＋ 食材に追加</button>';
+
+  document.getElementById('scan-result').innerHTML = '';
+  document.getElementById('scan-modal').classList.add('open');
+}
+
+// ── スキャンタブを開いたときにキー状態を表示 ──
+function updateScanBanner() {
+  const inp = document.getElementById('scan-api-key-input');
+  const status = document.getElementById('scan-key-status');
+  if (!inp) return;
+  const saved = settings.apiKey || '';
+  if (saved) {
+    // 保存済みキーを先頭8文字だけ表示（安全のため）
+    inp.value = saved;
+    if (status) status.innerHTML = '<span style="color:green">✅ キー保存済み（' + saved.substring(0,8) + '...）</span>';
+  } else {
+    inp.value = '';
+    if (status) status.innerHTML = '<span style="color:var(--accent)">⚠️ キーを貼り付けて保存してください</span>';
+  }
+}
+
+// ── スキャンタブからAPIキーを保存＆テスト ──
+async function saveScanApiKey() {
+  const inp = document.getElementById('scan-api-key-input');
+  if (!inp) return;
+  // iPhoneのオートコレクト対策：スペースと不可視文字を全除去
+  const raw = inp.value.replace(/[\u0000-\u001F\u007F-\u009F\uFEFF\u200B\u00A0\s]/g,'').trim();
+  if (!raw || raw.length < 20) {
+    alert('キーが短すぎます。Google AI Studioからコピーしたキーをそのまま貼り付けてください（39文字程度）');
+    return;
+  }
+  const status = document.getElementById('scan-key-status');
+
+  // ★ テスト結果に関わらず、まずキーを保存する（最重要）
+  settings.apiKey = raw;
+  inp.value = raw;
+  const mainInp = document.getElementById('api-key');
+  if (mainInp) mainInp.value = raw;
+  saveData();
+  if (status) status.innerHTML = '<span style="color:#888">✅ 保存しました。確認中...</span>';
+
+  // 確認テスト（保存済みなので失敗しても問題なし・あくまで参考）
+  try {
+    const testRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + raw, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with the single word: OK' }] }] })
+    });
+    const testData = await testRes.json();
+    if (testData.error) {
+      const code = testData.error.code;
+      const msg  = testData.error.message || '';
+      if (code === 429 || msg.includes('quota') || msg.includes('QUOTA') || msg.includes('exhausted')) {
+        // クォータ上限でもキー自体は有効 → 保存済み
+        if (status) status.innerHTML = '<span style="color:orange">✅ キーを保存しました。本日の無料利用枠が上限に達しています。<b>リセットは日本時間の午後4〜5時頃</b>です（太平洋時間の0時）。それ以降にお試しください。</span>';
+      } else if (code === 400 || msg.toLowerCase().includes('api_key') || msg.toLowerCase().includes('invalid')) {
+        if (status) status.innerHTML = '<span style="color:red">⚠️ キーは保存しましたが、無効な可能性があります。Google AI Studioで正しいキーをご確認ください。</span>';
+      } else {
+        if (status) status.innerHTML = '<span style="color:orange">✅ キーを保存しました（確認時エラー：' + msg + '）</span>';
+      }
+      return;
+    }
+    if (status) status.innerHTML = '<span style="color:green">✅ 有効なキーです！保存しました（' + raw.substring(0,8) + '...）</span>';
+  } catch(e) {
+    // ネットワークエラーでも保存済みなので問題なし
+    if (status) status.innerHTML = '<span style="color:green">✅ キーを保存しました（' + raw.substring(0,8) + '...）</span>';
+  }
+}
+
+// ── 接続診断（モデル一覧をAPIから自動取得）──
+async function diagApiKey() {
+  const key = (settings.apiKey || '').replace(/[\u0000-\u001F\u007F-\u009F\uFEFF\u200B\s]/g,'').trim();
+  const diagEl = document.getElementById('diag-result');
+  diagEl.style.display = 'block';
+  _geminiModelCache = null; // キャッシュリセット
+
+  if (!key) {
+    diagEl.innerHTML = '❌ <b>APIキーが保存されていません</b><br>上の入力欄にキーを貼り付けて「保存」を押してください。';
+    return;
+  }
+
+  const keyClean = key.replace(/\s/g,'');
+  let results = [];
+  results.push('📋 保存キー：' + key.substring(0,8) + '...' + key.slice(-4) + '（' + key.length + '文字）');
+  if (!keyClean.startsWith('AIza')) results.push('⚠️ 「AIza」で始まっていません。正しいキーか確認してください');
+  else results.push('✅ キーの形式は正常');
+  results.push('');
+
+  // Step1: 使えるモデル一覧をAPIから取得
+  diagEl.innerHTML = results.join('<br>') + '<br>🔄 使えるモデルの一覧を取得中...';
+  let models = [];
+  try {
+    const listRes = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models?key=' + keyClean + '&pageSize=100'
+    );
+    const listData = await listRes.json();
+    if (listData.error) {
+      const c = listData.error.code, m = listData.error.message || '';
+      if (c === 400 || c === 401 || m.toLowerCase().includes('invalid') || m.includes('API_KEY')) {
+        diagEl.innerHTML = results.join('<br>') + '<br>❌ <b>APIキーが無効です</b><br><a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">AI Studioで新しいキーを取得してください ↗</a>';
+        return;
+      }
+      results.push('⚠️ モデル一覧取得失敗 (' + c + '): ' + m.substring(0,60));
+    } else if (listData.models) {
+      models = listData.models
+        .filter(m => (m.supportedGenerationMethods||[]).includes('generateContent'))
+        .map(m => m.name.replace('models/',''))
+        .filter(n => !/embedding|aqa|text-bison|chat-bison/.test(n));
+      results.push('▼ このキーで使えるモデル（' + models.length + '件）：');
+      models.forEach(m => results.push('　• ' + m));
+      results.push('');
+      _geminiModelCache = models; // キャッシュに保存
+    }
+  } catch(e) {
+    results.push('⚠️ モデル一覧の取得に失敗（通信エラー）');
+  }
+
+  if (!models.length) {
+    results.push('❌ 使えるモデルが見つかりませんでした');
+    results.push('→ <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">AI Studioでキーを再取得してください ↗</a>');
+    diagEl.innerHTML = results.join('<br>');
+    return;
+  }
+
+  // Step2: 最初のモデルで実際に通信テスト
+  results.push('▼ 通信テスト：');
+  diagEl.innerHTML = results.join('<br>') + '<br>🔄 テスト中...';
+  let anyOk = false;
+  for (const model of models.slice(0, 5)) { // 最大5モデルだけテスト
+    try {
+      const res = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + keyClean,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({contents:[{parts:[{text:'Hi'}]}],generationConfig:{maxOutputTokens:5}}) }
+      );
+      const d = await res.json();
+      if (d.error) {
+        const c = d.error.code;
+        if (c === 429) { results.push('⚠️ ' + model + '：利用上限中（429）'); continue; }
+        results.push('❌ ' + model + '：エラー ' + c);
+      } else {
+        results.push('✅ ' + model + '：接続OK！');
+        anyOk = true; break;
+      }
+    } catch(e) { results.push('❌ ' + model + '：通信失敗'); }
+  }
+
+  results.push('');
+  if (anyOk) {
+    results.push('🎉 <b>正常に使えます！写真撮影を試してください。</b>');
+  } else {
+    results.push('⏰ 全モデルが利用上限中です。日本時間の午後4〜5時以降にリセットされます。');
+  }
+  diagEl.innerHTML = results.join('<br>');
+}
+
+// ── APIキーをクリア ──
+function clearApiKey() {
+  if (!confirm('保存済みのAPIキーを削除しますか？')) return;
+  settings.apiKey = '';
+  const inp = document.getElementById('scan-api-key-input');
+  if (inp) inp.value = '';
+  const mainInp = document.getElementById('api-key');
+  if (mainInp) mainInp.value = '';
+  saveData();
+  const status = document.getElementById('scan-key-status');
+  if (status) status.innerHTML = '<span style="color:var(--accent)">🗑 キーをクリアしました。新しいキーを貼り付けてください</span>';
+}
+
+// ── 初期描画 ──
+loadSettings();
+renderIngredients();
+renderFamily();
+renderInsta();
+renderUseLog();
+if (weekMenu) renderMenu(weekMenu);
+</script>
+</body>
+</html>
