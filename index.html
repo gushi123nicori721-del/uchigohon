@@ -1337,9 +1337,14 @@ ${saleInfo?'【'+saleInfo+'】':''}
 
 ルール：傷みやすい食材を週前半に使う、市販品はそのまま活用、家族の悩みに合った栄養を考慮、手軽さとトレンド感を意識。
 
+【レシピの書き方ルール（必ず守ること）】
+・ingredientsは必ず分量を明記。例：「醤油 大さじ2」「砂糖 小さじ1」「鶏もも肉 300g（${s.servings||4}人分）」
+・stepsは料理が苦手な人でもわかるよう、火加減・時間・目安を具体的に書く。例：「中火で3分、表面が白くなったら裏返す」「沸騰したら弱火にして蓋をして10分煮る」
+・kidsHelpには子供が手伝える作業を1〜3個書く。例：「野菜を洗う」「材料を混ぜる」「ちぎる」など包丁・火を使わない作業のみ。子供が手伝えない料理はkidsHelpを空配列にする。
+
 以下のJSON形式のみで返してください。他テキスト不要。
-{"days":[{"day":"月曜日","date":"","fish":false,"bentoNote":"","main":{"name":"料理名","ingredients":["材料1（${s.servings||4}人分）"],"steps":["手順1"],"time":"20分","nutrition":{"protein":"高","veggie":"中","carb":"中"}},"side1":{"name":"副菜名","ingredients":["材料1"],"steps":["手順1"],"time":"10分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"side2":{"name":"副菜名","ingredients":["材料1"],"steps":["手順1"],"time":"5分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"soup":{"name":"汁物名","ingredients":["材料1"],"steps":["手順1"],"time":"10分","nutrition":{"protein":"低","veggie":"中","carb":"低"}},"lunch":null,"bento":null}]}
-bentoNoteは「夜の残りで可」または「専用弁当あり」と記載。専用弁当が必要な日はbentoフィールドに{"name":"弁当名","ingredients":["材料"],"steps":["手順"],"time":"10分"}を入れる。魚の日はfish:trueにする。平日昼食がある場合はlunchフィールドに{"name":"昼食名","ingredients":["材料（1人分）"],"steps":["手順"],"time":"10分"}を入れる（土日はnull）。`;
+{"days":[{"day":"月曜日","date":"","fish":false,"bentoNote":"","main":{"name":"料理名","ingredients":["鶏もも肉 300g","醤油 大さじ2"],"steps":["中火でフライパンを熱し、油を薄くひく","鶏肉を皮目を下にして入れ、中火で4分焼く"],"kidsHelp":["野菜を洗う","調味料を混ぜる"],"time":"20分","nutrition":{"protein":"高","veggie":"中","carb":"中"}},"side1":{"name":"副菜名","ingredients":["材料 分量"],"steps":["具体的な手順"],"kidsHelp":["手伝える作業"],"time":"10分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"side2":{"name":"副菜名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":[],"time":"5分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"soup":{"name":"汁物名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":["具を入れる"],"time":"10分","nutrition":{"protein":"低","veggie":"中","carb":"低"}},"lunch":null,"bento":null}]}
+bentoNoteは「夜の残りで可」または「専用弁当あり」と記載。専用弁当が必要な日はbentoフィールドに{"name":"弁当名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":[],"time":"10分"}を入れる。魚の日はfish:trueにする。平日昼食がある場合はlunchフィールドに{"name":"昼食名","ingredients":["材料（1人分） 分量"],"steps":["手順"],"kidsHelp":[],"time":"10分"}を入れる（土日はnull）。`;
 }
 
 async function replanMenu() {
@@ -1361,16 +1366,16 @@ async function replanMenu() {
 function showDemoMenu() {
   weekMenu={days:[
     {day:"月曜日",date:"4/14",
-     main:{name:"鶏むね肉のハーブ焼き",ingredients:["鶏むね肉 2枚","にんにく 1片","オリーブオイル 大さじ2","ローズマリー 適量"],steps:["鶏肉に塩こしょうで下味をつける","フライパンにオイルとにんにくを熱する","皮目から焼きローズマリーを加えて両面焼く","蓋をして弱火で5分蒸し焼き"],time:"25分",nutrition:{protein:"高",veggie:"低",carb:"低"}},
-     side1:{name:"ほうれん草のごまあえ",ingredients:["ほうれん草 1束","白ごま 大さじ2","砂糖・醤油 各小さじ1"],steps:["ほうれん草をゆでて水気を絞る","調味料とごまで和える"],time:"10分",nutrition:{protein:"低",veggie:"高",carb:"低"}},
-     side2:{name:"きゅうりの浅漬け",ingredients:["きゅうり 2本","塩 小さじ1","昆布 5cm"],steps:["薄切りにして塩もみし昆布と漬ける"],time:"5分",nutrition:{protein:"低",veggie:"高",carb:"低"}},
-     soup:{name:"豆腐とわかめの味噌汁",ingredients:["豆腐 半丁","わかめ 適量","だし 2カップ","味噌 大さじ2"],steps:["だしを沸かし豆腐とわかめを入れる","味噌を溶き入れて完成"],time:"10分",nutrition:{protein:"中",veggie:"中",carb:"低"}}
+     main:{name:"鶏むね肉のハーブ焼き",ingredients:["鶏むね肉 2枚（約400g）","にんにく 1片","オリーブオイル 大さじ2","塩 小さじ1/2","こしょう 少々","ローズマリー 2〜3本"],steps:["鶏肉の両面に塩・こしょうをふって5分おく","フライパンにオリーブオイルとにんにくを入れ中火で熱する","にんにくの香りが出たら鶏肉を皮目を下にして入れる","中火で4分焼き、焼き色がついたら裏返してローズマリーをのせる","蓋をして弱火で6分蒸し焼きにする（中まで火が通ればOK）"],kidsHelp:["ローズマリーをちぎってのせる","塩こしょうをふる"],time:"25分",nutrition:{protein:"高",veggie:"低",carb:"低"}},
+     side1:{name:"ほうれん草のごまあえ",ingredients:["ほうれん草 1束（約200g）","白ごま 大さじ2","砂糖 小さじ1","醤油 小さじ1"],steps:["鍋にたっぷりのお湯を沸かし、ほうれん草を根元から入れて2分ゆでる","冷水にとって冷まし、しっかり水気を絞って4cm幅に切る","砂糖・醤油・白ごまを混ぜたタレで和える"],kidsHelp:["白ごまを量る","タレを混ぜる"],time:"10分",nutrition:{protein:"低",veggie:"高",carb:"低"}},
+     side2:{name:"きゅうりの浅漬け",ingredients:["きゅうり 2本","塩 小さじ1","昆布 5cm（なくてもOK）"],steps:["きゅうりを薄い輪切りにする","ボウルに入れて塩をふり、手でよく混ぜて5分おく","水気を絞り、昆布と一緒に袋に入れて10分漬ければ完成"],kidsHelp:["袋を振って混ぜる","盛り付けをする"],time:"5分",nutrition:{protein:"低",veggie:"高",carb:"低"}},
+     soup:{name:"豆腐とわかめの味噌汁",ingredients:["絹ごし豆腐 半丁（約150g）","乾燥わかめ 大さじ1","だし（顆粒だしでOK） 400ml","味噌 大さじ1と1/2"],steps:["鍋にだし汁400mlを入れて中火で沸かす","沸いたら豆腐をスプーンでひと口大にすくって入れる","乾燥わかめを加えて30秒煮る","火を弱めて味噌をお玉で溶かし入れ、沸騰しないうちに火を止める"],kidsHelp:["わかめを入れる","味噌をお玉に入れて渡す"],time:"10分",nutrition:{protein:"中",veggie:"中",carb:"低"}}
     },
     {day:"火曜日",date:"4/15",
-     main:{name:"豚バラと大根の煮物",ingredients:["豚バラ肉 300g","大根 1/2本","醤油・みりん 各大さじ3","砂糖 大さじ1"],steps:["豚バラを切る","大根を下ゆでする","鍋に入れて20分煮込む"],time:"35分",nutrition:{protein:"高",veggie:"中",carb:"低"}},
-     side1:{name:"小松菜と人参の炒め物",ingredients:["小松菜 1束","にんじん 1/3本","ごま油 少々"],steps:["小松菜とにんじんを炒めごま油で味付け"],time:"8分",nutrition:{protein:"低",veggie:"高",carb:"低"}},
-     side2:{name:"冷奴",ingredients:["豆腐 1丁","しょうが","醤油 少々"],steps:["豆腐を切り薬味と醤油をかける"],time:"2分",nutrition:{protein:"中",veggie:"低",carb:"低"}},
-     soup:{name:"なめこの味噌汁",ingredients:["なめこ 1袋","豆腐 1/4丁","味噌 大さじ2"],steps:["だしを沸かしてなめこを加え味噌を溶く"],time:"8分",nutrition:{protein:"低",veggie:"中",carb:"低"}}
+     main:{name:"豚バラと大根の煮物",ingredients:["豚バラ肉 300g","大根 1/2本（約500g）","醤油 大さじ3","みりん 大さじ3","砂糖 大さじ1","水 200ml"],steps:["大根は2cm厚さの半月切りにし、鍋に入れてかぶるくらいの水で10分下ゆでして水気を切る","豚バラ肉は5cm幅に切る","鍋に豚バラを入れて中火で炒め、脂が出てきたら大根を加える","醤油・みりん・砂糖・水を入れて沸いたら弱火にし、蓋をして20分煮込む","蓋を取って中火にし、タレをからめながら5分煮詰めれば完成"],kidsHelp:["調味料を量る","混ぜてもらう"],time:"35分",nutrition:{protein:"高",veggie:"中",carb:"低"}},
+     side1:{name:"小松菜と人参の炒め物",ingredients:["小松菜 1束（約200g）","にんじん 1/3本","ごま油 小さじ2","塩 少々","醤油 小さじ1"],steps:["小松菜は根元を切って4cm幅に切る。にんじんは細切りにする","フライパンにごま油を中火で熱し、にんじんを1分炒める","小松菜を加えて2分炒め、塩・醤油で味付けして完成"],kidsHelp:["野菜を洗う"],time:"8分",nutrition:{protein:"低",veggie:"高",carb:"低"}},
+     side2:{name:"冷奴",ingredients:["絹ごし豆腐 1丁","しょうが（チューブでOK） 少々","醤油 小さじ2"],steps:["豆腐を水切りして食べやすい大きさに切る","器に盛り、しょうがと醤油をかければ完成"],kidsHelp:["しょうがを絞る","盛り付けをする"],time:"2分",nutrition:{protein:"中",veggie:"低",carb:"低"}},
+     soup:{name:"なめこの味噌汁",ingredients:["なめこ 1袋（100g）","豆腐 1/4丁","だし 400ml","味噌 大さじ1と1/2"],steps:["鍋にだしを入れて中火で沸かす","なめこと豆腐（さいの目切り）を加えて1分煮る","火を弱めて味噌をお玉で溶かし入れ、沸騰しないうちに火を止める"],kidsHelp:["なめこを袋から出す"],time:"8分",nutrition:{protein:"低",veggie:"中",carb:"低"}}
     }
   ]};
   saveData(); renderMenu(weekMenu); renderNutrition();
@@ -1429,10 +1434,17 @@ function toggleCheck(key,type,btn,mealName) {
 function showRecipe(dayIdx,type) {
   const meal=weekMenu.days[dayIdx][type]; if (!meal) return;
   document.getElementById('modal-title').textContent=meal.name;
+  const kidsSection = meal.kidsHelp && meal.kidsHelp.length
+    ? `<div class="recipe-section" style="background:#fff8e1;border-radius:10px;padding:10px;margin-bottom:10px">
+        <h4 style="color:#e67e22">👧 子供のお手伝いポイント</h4>
+        <ul style="padding-left:16px;margin:0">${meal.kidsHelp.map(k=>`<li style="font-size:12px;line-height:1.9">${k}</li>`).join('')}</ul>
+       </div>`
+    : '';
   document.getElementById('modal-content').innerHTML=`
     <div class="recipe-section"><h4>⏱ 調理時間</h4><p>${meal.time||'不明'}</p></div>
-    <div class="recipe-section"><h4>🛒 材料</h4><p>${(meal.ingredients||[]).join('、')}</p></div>
+    <div class="recipe-section"><h4>🛒 材料（${weekMenu.servings||''}人分）</h4><ul style="padding-left:16px;margin:0">${(meal.ingredients||[]).map(i=>`<li style="font-size:12px;line-height:1.9">${i}</li>`).join('')}</ul></div>
     <div class="recipe-section"><h4>👩‍🍳 作り方</h4><ol>${(meal.steps||[]).map(s=>`<li>${s}</li>`).join('')}</ol></div>
+    ${kidsSection}
     <button class="btn btn-green" style="margin-top:8px" onclick="addToShopping(${dayIdx},'${type}')">🛒 材料を買い物リストに追加</button>
   `;
   document.getElementById('recipe-modal').classList.add('open');
