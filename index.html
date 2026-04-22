@@ -1290,7 +1290,7 @@ async function generateMenu() {
   btn.disabled=true; btn.textContent='生成中...';
   document.getElementById('menu-container').innerHTML=`<div class="loading"><div class="loading-dots"><span></span><span></span><span></span></div><p>家族の情報と食材をもとに<br>献立を考えています...</p></div>`;
   try {
-    const aiText = await callAI(buildPrompt(), apiKey, 5000);
+    const aiText = await callAI(buildPrompt(), apiKey, 8000);
     weekMenu = JSON.parse(aiText.replace(/```json|```/g,'').trim());
     saveData(); renderMenu(weekMenu); renderNutrition(); renderSaleTags();
   } catch(e) {
@@ -1340,7 +1340,7 @@ ${saleInfo?'【'+saleInfo+'】':''}
 【レシピの書き方ルール（必ず守ること）】
 ・ingredientsは必ず分量を明記。例：「醤油 大さじ2」「砂糖 小さじ1」「鶏もも肉 300g（${s.servings||4}人分）」
 ・stepsは料理が苦手な人でもわかるよう、火加減・時間・目安を具体的に書く。例：「中火で3分、表面が白くなったら裏返す」「沸騰したら弱火にして蓋をして10分煮る」
-・kidsHelpには子供が手伝える作業を1〜3個書く。例：「野菜を洗う」「材料を混ぜる」「ちぎる」など包丁・火を使わない作業のみ。子供が手伝えない料理はkidsHelpを空配列にする。
+・kidsHelpは必ず1〜3個書くこと（絶対に空にしない）。包丁・火を使わない作業のみ。例：「野菜を洗う」「材料をボウルで混ぜる」「ちぎる」「お皿に盛る」「ラップをかける」「袋を振る」など。どんな料理でも必ず子供が手伝える作業はある。
 
 以下のJSON形式のみで返してください。他テキスト不要。
 {"days":[{"day":"月曜日","date":"","fish":false,"bentoNote":"","main":{"name":"料理名","ingredients":["鶏もも肉 300g","醤油 大さじ2"],"steps":["中火でフライパンを熱し、油を薄くひく","鶏肉を皮目を下にして入れ、中火で4分焼く"],"kidsHelp":["野菜を洗う","調味料を混ぜる"],"time":"20分","nutrition":{"protein":"高","veggie":"中","carb":"中"}},"side1":{"name":"副菜名","ingredients":["材料 分量"],"steps":["具体的な手順"],"kidsHelp":["手伝える作業"],"time":"10分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"side2":{"name":"副菜名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":[],"time":"5分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"soup":{"name":"汁物名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":["具を入れる"],"time":"10分","nutrition":{"protein":"低","veggie":"中","carb":"低"}},"lunch":null,"bento":null}]}
@@ -1354,7 +1354,7 @@ async function replanMenu() {
   btn.disabled=true; btn.textContent='組み直し中...';
   document.getElementById('menu-container').innerHTML=`<div class="loading"><div class="loading-dots"><span></span><span></span><span></span></div><p>特売・旬の食材を考慮して<br>組み直しています...</p></div>`;
   try {
-    const aiText = await callAI(buildPrompt(), apiKey, 5000);
+    const aiText = await callAI(buildPrompt(), apiKey, 8000);
     weekMenu = JSON.parse(aiText.replace(/```json|```/g,'').trim());
     saveData(); renderMenu(weekMenu); renderNutrition(); renderSaleTags();
   } catch(e) {
@@ -1434,12 +1434,11 @@ function toggleCheck(key,type,btn,mealName) {
 function showRecipe(dayIdx,type) {
   const meal=weekMenu.days[dayIdx][type]; if (!meal) return;
   document.getElementById('modal-title').textContent=meal.name;
-  const kidsSection = meal.kidsHelp && meal.kidsHelp.length
-    ? `<div class="recipe-section" style="background:#fff8e1;border-radius:10px;padding:10px;margin-bottom:10px">
-        <h4 style="color:#e67e22">👧 子供のお手伝いポイント</h4>
-        <ul style="padding-left:16px;margin:0">${meal.kidsHelp.map(k=>`<li style="font-size:12px;line-height:1.9">${k}</li>`).join('')}</ul>
-       </div>`
-    : '';
+  const kidsItems = meal.kidsHelp && meal.kidsHelp.length ? meal.kidsHelp : ['盛り付けをする','食卓に並べる'];
+  const kidsSection = `<div class="recipe-section" style="background:#fff8e1;border-radius:10px;padding:10px;margin-bottom:10px">
+      <h4 style="color:#e67e22">👧 子供のお手伝いポイント</h4>
+      <ul style="padding-left:16px;margin:0">${kidsItems.map(k=>`<li style="font-size:12px;line-height:1.9">${k}</li>`).join('')}</ul>
+     </div>`;
   document.getElementById('modal-content').innerHTML=`
     <div class="recipe-section"><h4>⏱ 調理時間</h4><p>${meal.time||'不明'}</p></div>
     <div class="recipe-section"><h4>🛒 材料（${weekMenu.servings||''}人分）</h4><ul style="padding-left:16px;margin:0">${(meal.ingredients||[]).map(i=>`<li style="font-size:12px;line-height:1.9">${i}</li>`).join('')}</ul></div>
