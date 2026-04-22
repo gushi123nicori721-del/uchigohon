@@ -1435,18 +1435,25 @@ function showRecipe(dayIdx,type) {
   const meal=weekMenu.days[dayIdx][type]; if (!meal) return;
   document.getElementById('modal-title').textContent=meal.name;
   const kidsItems = meal.kidsHelp && meal.kidsHelp.length ? meal.kidsHelp : ['盛り付けをする','食卓に並べる'];
-  const kidsSection = `<div class="recipe-section" style="background:#fff8e1;border-radius:10px;padding:10px;margin-bottom:10px">
-      <h4 style="color:#e67e22">👧 子供のお手伝いポイント</h4>
-      <ul style="padding-left:16px;margin:0">${kidsItems.map(k=>`<li style="font-size:12px;line-height:1.9">${k}</li>`).join('')}</ul>
-     </div>`;
+  const kidsListHtml = kidsItems.map(k=>`<li style="font-size:13px;line-height:2">${k}</li>`).join('');
   document.getElementById('modal-content').innerHTML=`
     <div class="recipe-section"><h4>⏱ 調理時間</h4><p>${meal.time||'不明'}</p></div>
     <div class="recipe-section"><h4>🛒 材料（${weekMenu.servings||''}人分）</h4><ul style="padding-left:16px;margin:0">${(meal.ingredients||[]).map(i=>`<li style="font-size:12px;line-height:1.9">${i}</li>`).join('')}</ul></div>
     <div class="recipe-section"><h4>👩‍🍳 作り方</h4><ol>${(meal.steps||[]).map(s=>`<li>${s}</li>`).join('')}</ol></div>
-    ${kidsSection}
     <button class="btn btn-green" style="margin-top:8px" onclick="addToShopping(${dayIdx},'${type}')">🛒 材料を買い物リストに追加</button>
+    <button class="btn" onclick="toggleKids(this)" style="margin-top:8px;background:#fff8e1;color:#e67e22;border:1.5px solid #f6c26b;width:100%;font-size:13px">👧 子供のお手伝いを見る</button>
+    <div id="kids-section" style="display:none;background:#fff8e1;border-radius:10px;padding:12px;margin-top:6px">
+      <p style="font-size:11px;color:#e67e22;font-weight:bold;margin-bottom:6px">🌟 一緒にやってみよう！</p>
+      <ul style="padding-left:16px;margin:0">${kidsListHtml}</ul>
+    </div>
   `;
   document.getElementById('recipe-modal').classList.add('open');
+}
+function toggleKids(btn) {
+  const el = document.getElementById('kids-section');
+  const open = el.style.display === 'block';
+  el.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? '👧 子供のお手伝いを見る' : '👧 子供のお手伝いを閉じる';
 }
 
 // ── 買い物リスト ──
