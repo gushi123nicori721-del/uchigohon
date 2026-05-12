@@ -487,6 +487,8 @@
     <button class="btn btn-primary" onclick="generateShoppingList()">献立から自動生成</button>
     <button class="btn btn-secondary" onclick="clearCheckedItems()">チェック済みを削除</button>
   </div>
+  <button class="btn" onclick="generateBuyRecommendations()" style="width:100%;margin-bottom:10px;background:#fff8e1;color:#e67e22;border:1.5px solid #f6c26b;font-size:13px">✨ 買い足しをAIにおすすめしてもらう</button>
+  <div id="buy-recommendations"></div>
   <div class="add-form">
     <div class="form-row">
       <input type="text" id="shop-item" placeholder="手動で追加（例：牛乳）">
@@ -1327,7 +1329,7 @@ function buildPrompt() {
 【食材（期限が近いものを優先使用）】${ingList||'特になし'}
 ${urgentIngs ? '【3日以内に期限切れ（必ず今週前半で使う）】' + urgentIngs : ''}
 【家族の情報】${famList||'特になし'}
-【参考にしたいレシピ】${instaList||'特になし'}
+【参考にしたいレシピ（必ず1つ以上をメイン料理に採用すること）】${instaList||'特になし'}
 【過去に好評だった料理（積極的に採用）】${histGood||'なし'}
 【過去に不評だった料理（避ける）】${histBad||'なし'}
 【生ゴミの日】${gd}（前日の${fishDays.join('と')}に必ず魚料理を入れること）
@@ -1474,6 +1476,51 @@ function generateShoppingList() {
   shoppingList=[...items,...shoppingList.filter(i=>!i.auto)];
   saveData(); renderShoppingList();
   alert(`${items.length}品を買い物リストに追加しました`);
+}
+
+async function generateBuyRecommendations() {
+  const apiKey = getApiKey();
+  if (!apiKey) return alert('APIキーをスキャンタブで入力・保存してください');
+  const el = document.getElementById('buy-recommendations');
+  el.innerHTML = '<div class="loading"><div class="loading-dots"><span></span><span></span><span></span></div><p>AIが買い足しを考えています...</p></div>';
+  const ingList = ingredients.map(i=>i.name).join('、') || 'なし';
+  const famList = settings.members ? settings.members.map(m=>`${m.name}（${m.allergy||'アレルギーなし'}）`).join('、') : 'なし';
+  const menuList = weekMenu ? weekMenu.days.slice(0,3).map(d=>d.main?d.main.name:'').filter(Boolean).join('、') : 'まだ生成していない';
+  const prompt = `家族情報：${famList}
+現在の食材：${ingList}
+今週の献立（一部）：${menuList}
+
+上記をふまえて、今週買い足すと便利な食材・調味料を10〜15品おすすめしてください。
+・家にない調味料や日用食材（ストックしておくと便利なもの）
+・今週の献立を作るのに役立つもの
+・栄養バランスを補えるもの
+・家族構成に合ったもの
+
+以下のJSON形式のみで返してください。他テキスト不要。
+{"recommendations":[{"name":"商品名","category":"野菜・果物/肉・魚/乳製品・卵/調味料/その他","reason":"一言理由"}]}`;
+  try {
+    const text = await callAI(prompt, apiKey, 1500);
+    const data = JSON.parse(text.replace(/```json|```/g,'').trim());
+    const cats = [...new Set(data.recommendations.map(r=>r.category))];
+    el.innerHTML = `<div style="background:#fff8e1;border-radius:12px;padding:12px;margin-bottom:10px">
+      <p style="font-size:12px;font-weight:bold;color:#e67e22;margin-bottom:10px">✨ AIの買い足しおすすめ</p>
+      ${cats.map(cat=>`
+        <div class="shopping-cat">${cat}</div>
+        ${data.recommendations.filter(r=>r.category===cat).map(r=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f6e8b0">
+            <button onclick="addRecommendToCart(this,'${r.name.replace(/'/g,'')}','${r.category}')" style="font-size:10px;padding:3px 8px;border-radius:6px;background:#e67e22;color:white;border:none;cursor:pointer;flex-shrink:0">＋追加</button>
+            <div><span style="font-size:12px">${r.name}</span><span style="font-size:10px;color:#aaa;margin-left:6px">${r.reason}</span></div>
+          </div>`).join('')}
+      `).join('')}
+    </div>`;
+  } catch(e) {
+    el.innerHTML = '<div class="empty-state"><div class="emoji">⚠️</div><p>取得に失敗しました。もう一度お試しください。</p></div>';
+  }
+}
+function addRecommendToCart(btn, name, category) {
+  shoppingList.push({id:Date.now(),name,category,checked:false});
+  saveData(); renderShoppingList();
+  btn.textContent = '✓追加済'; btn.style.background = '#888'; btn.disabled = true;
 }
 
 function guessCategory(name) {
