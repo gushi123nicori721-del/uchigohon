@@ -385,12 +385,21 @@
 <div id="tab-insta" class="page">
   <div class="section-title">📸 参考にしたいレシピ</div>
   <div class="add-form">
-    <div class="form-row"><input type="text" id="insta-url" placeholder="InstagramのURLを貼り付け"></div>
+    <div class="form-row"><input type="text" id="insta-url" placeholder="InstagramのURLを貼り付け（任意）"></div>
     <div class="form-row"><input type="text" id="insta-title" placeholder="料理名（例：ふわとろ親子丼）"></div>
+    <div style="margin-bottom:8px">
+      <p style="font-size:11px;color:#888;margin-bottom:6px">📷 レシピのスクショを追加するとAIが自動で読み取ります</p>
+      <input type="file" id="insta-image" accept="image/*" style="display:none" onchange="previewInstaImage(event)">
+      <button class="btn btn-secondary" onclick="document.getElementById('insta-image').click()" style="width:100%">📷 スクショを選ぶ</button>
+      <div id="insta-image-preview" style="display:none;margin-top:8px">
+        <img id="insta-preview-img" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover">
+        <p id="insta-extract-status" style="font-size:11px;color:#888;margin-top:4px;text-align:center">📖 追加時にAIがレシピを読み取ります</p>
+      </div>
+    </div>
     <button class="btn btn-primary" onclick="addInstaRef()">+ 追加</button>
   </div>
   <div class="insta-card" id="insta-list">
-    <div class="empty-state"><div class="emoji">📱</div><p>InstagramのURLを貼って<br>参考レシピを登録してください</p></div>
+    <div class="empty-state"><div class="emoji">📱</div><p>InstagramのURLや<br>レシピのスクショを登録してください</p></div>
   </div>
 </div>
 
@@ -1153,22 +1162,75 @@ function renderFamily() {
 function removeFamilyMember(id) { familyMembers=familyMembers.filter(m=>m.id!==id); saveData(); renderFamily(); }
 
 // ── インスタ ──
-function addInstaRef() {
-  const url=document.getElementById('insta-url').value.trim(), title=document.getElementById('insta-title').value.trim();
-  if (!url||!title) return alert('URLと料理名を入力してください');
-  instaRefs.push({id:Date.now(),url,title}); saveData(); renderInsta();
+let _instaImageBase64 = null;
+let _instaImageMime = null;
+
+function previewInstaImage(event) {
+  const file = event.target.files[0]; if (!file) return;
+  _instaImageMime = file.type;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _instaImageBase64 = e.target.result.split(',')[1];
+    document.getElementById('insta-preview-img').src = e.target.result;
+    document.getElementById('insta-image-preview').style.display = 'block';
+    document.getElementById('insta-extract-status').textContent = '📖 追加時にAIがレシピを読み取ります';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function addInstaRef() {
+  const url=document.getElementById('insta-url').value.trim();
+  const title=document.getElementById('insta-title').value.trim();
+  if (!title && !_instaImageBase64) return alert('料理名またはスクショを追加してください');
+  const ref = {id:Date.now(), url:url||'', title:title||'（スクショから読み取り中）', recipe:'', thumb:null};
+  if (_instaImageBase64) {
+    ref.thumb = 'data:' + _instaImageMime + ';base64,' + _instaImageBase64;
+    const apiKey = getApiKey();
+    if (apiKey) {
+      document.getElementById('insta-extract-status').textContent = '⏳ AIがレシピを読み取り中...';
+      try {
+        const prompt = `このInstagramのスクショからレシピを抽出してください。
+料理名、材料（分量付き）、作り方の手順をすべて読み取って以下のJSON形式で返してください。
+{"title":"料理名","ingredients":["材料1 分量","材料2 分量"],"steps":["手順1","手順2"]}
+テキストが見えない場合は{"title":"不明","ingredients":[],"steps":[]}を返してください。`;
+        const result = await callAIWithImage(prompt, _instaImageBase64, _instaImageMime, apiKey);
+        const data = JSON.parse(result.replace(/```json|```/g,'').trim());
+        if (data.title && data.title !== '不明') {
+          if (!title) ref.title = data.title;
+          ref.recipe = `材料：${data.ingredients.join('、')}\n手順：${data.steps.join('→')}`;
+        }
+      } catch(e) { ref.recipe = ''; }
+    }
+    _instaImageBase64 = null; _instaImageMime = null;
+    document.getElementById('insta-image-preview').style.display = 'none';
+    document.getElementById('insta-image').value = '';
+  }
+  instaRefs.push(ref); saveData(); renderInsta();
   document.getElementById('insta-url').value=''; document.getElementById('insta-title').value='';
 }
 
 function renderInsta() {
   const el=document.getElementById('insta-list');
-  if (!instaRefs.length) { el.innerHTML='<div class="empty-state"><div class="emoji">📱</div><p>InstagramのURLを貼って<br>参考レシピを登録してください</p></div>'; return; }
+  if (!instaRefs.length) { el.innerHTML='<div class="empty-state"><div class="emoji">📱</div><p>InstagramのURLや<br>レシピのスクショを登録してください</p></div>'; return; }
   el.innerHTML = instaRefs.map(r=>`
-    <div class="insta-item">
-      <div class="insta-thumb">📸</div>
-      <div class="insta-info"><div class="insta-title">${r.title}</div><div class="insta-url">${r.url}</div></div>
-      <a href="${r.url}" target="_blank" style="font-size:16px;text-decoration:none">↗️</a>
+    <div class="insta-item" style="flex-direction:column;align-items:flex-start;padding:10px">
+      <div style="display:flex;width:100%;align-items:center;gap:8px;margin-bottom:${r.recipe?'8px':'0'}">
+        ${r.thumb ? `<img src="${r.thumb}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">` : '<div class="insta-thumb">📸</div>'}
+        <div class="insta-info" style="flex:1">
+          <div class="insta-title">${r.title}</div>
+          ${r.url ? `<div class="insta-url">${r.url}</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${r.url ? `<a href="${r.url}" target="_blank" style="font-size:16px;text-decoration:none">↗️</a>` : ''}
+          <span onclick="deleteInstaRef(${r.id})" style="font-size:16px;cursor:pointer">🗑️</span>
+        </div>
+      </div>
+      ${r.recipe ? `<div style="background:#f5f5f5;border-radius:8px;padding:8px;font-size:11px;color:#666;line-height:1.7;width:100%;box-sizing:border-box">✅ レシピ読み取り済み<br>${r.recipe.replace(/\n/g,'<br>')}</div>` : ''}
     </div>`).join('');
+}
+
+function deleteInstaRef(id) {
+  instaRefs = instaRefs.filter(r=>r.id!==id); saveData(); renderInsta();
 }
 
 // ── 設定 ──
@@ -1309,7 +1371,7 @@ function buildPrompt() {
     .map(i => i.name).join('、');
   const ingList   = ingredients.map(i=>`${i.name}(${i.amount||'適量'}${i.expiry?'、期限:'+getExpiryText(i.expiry):''}${i.aiNotes?'、用途:'+i.aiNotes:''})` ).join('、');
   const famList   = familyMembers.map(m=>`${m.name}(${m.age||''}、悩み:${m.concerns.join('・')||'なし'})`).join('、');
-  const instaList = instaRefs.map(r=>r.title).join('、');
+  const instaList = instaRefs.map(r=>r.recipe ? `【${r.title}】${r.recipe}` : r.title).join('\n');
   const histGood  = cookHistory.filter(h=>h.good).map(h=>h.name).join('、');
   const histBad   = cookHistory.filter(h=>h.bad).map(h=>h.name).join('、');
   const dayMap={'月':0,'火':1,'水':2,'木':3,'金':4,'土':5,'日':6};
