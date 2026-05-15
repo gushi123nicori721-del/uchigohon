@@ -388,12 +388,13 @@
     <div class="form-row"><input type="text" id="insta-url" placeholder="InstagramのURLを貼り付け（任意）"></div>
     <div class="form-row"><input type="text" id="insta-title" placeholder="料理名（例：ふわとろ親子丼）"></div>
     <div style="margin-bottom:8px">
-      <p style="font-size:11px;color:#888;margin-bottom:6px">📷 レシピのスクショを追加するとAIが自動で読み取ります</p>
+      <p style="font-size:11px;color:#888;margin-bottom:6px">📷 レシピのスクショを追加するとAIが自動で読み取ります（複数枚OK）</p>
       <input type="file" id="insta-image" accept="image/*" style="display:none" onchange="previewInstaImage(event)">
-      <button class="btn btn-secondary" onclick="document.getElementById('insta-image').click()" style="width:100%">📷 スクショを選ぶ</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('insta-image').click()" style="width:100%" id="insta-add-btn">📷 スクショを選ぶ</button>
       <div id="insta-image-preview" style="display:none;margin-top:8px">
-        <img id="insta-preview-img" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover">
-        <p id="insta-extract-status" style="font-size:11px;color:#888;margin-top:4px;text-align:center">📖 追加時にAIがレシピを読み取ります</p>
+        <div id="insta-thumbs-grid" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"></div>
+        <button class="btn btn-secondary" onclick="document.getElementById('insta-image').click()" style="width:100%;font-size:12px;padding:6px">＋ もう1枚追加する</button>
+        <p id="insta-extract-status" style="font-size:11px;color:#888;margin-top:4px;text-align:center">📖 追加時にAIが全枚まとめてレシピを読み取ります</p>
       </div>
     </div>
     <button class="btn btn-primary" onclick="addInstaRef()">+ 追加</button>
@@ -430,14 +431,16 @@
         </select>
       </div>
       <div style="flex:1">
-        <div style="font-size:10px;color:#888;margin-bottom:4px">🗑 生ゴミの日</div>
-        <select id="garbage-day">
-          <option value="月曜・木曜" selected>月曜・木曜</option>
-          <option value="火曜・金曜">火曜・金曜</option>
-          <option value="水曜・土曜">水曜・土曜</option>
-          <option value="月曜・水曜">月曜・水曜</option>
-          <option value="火曜・木曜">火曜・木曜</option>
-        </select>
+        <div style="font-size:10px;color:#888;margin-bottom:6px">🗑 生ゴミの日（複数選択OK）</div>
+        <div class="concern-tags" style="flex-wrap:wrap;gap:4px;margin-bottom:0">
+          <span class="concern-tag garbage-day" onclick="this.classList.toggle('selected');autoSaveGarbageDay()" data-day="月">月</span>
+          <span class="concern-tag garbage-day" onclick="this.classList.toggle('selected');autoSaveGarbageDay()" data-day="火">火</span>
+          <span class="concern-tag garbage-day" onclick="this.classList.toggle('selected');autoSaveGarbageDay()" data-day="水">水</span>
+          <span class="concern-tag garbage-day" onclick="this.classList.toggle('selected');autoSaveGarbageDay()" data-day="木">木</span>
+          <span class="concern-tag garbage-day" onclick="this.classList.toggle('selected');autoSaveGarbageDay()" data-day="金">金</span>
+          <span class="concern-tag garbage-day" onclick="this.classList.toggle('selected');autoSaveGarbageDay()" data-day="土">土</span>
+          <span class="concern-tag garbage-day" onclick="this.classList.toggle('selected');autoSaveGarbageDay()" data-day="日">日</span>
+        </div>
       </div>
     </div>
     <div style="font-size:10px;color:#888;margin:8px 0 4px">🍱 旦那さんのお弁当</div>
@@ -1162,38 +1165,61 @@ function renderFamily() {
 function removeFamilyMember(id) { familyMembers=familyMembers.filter(m=>m.id!==id); saveData(); renderFamily(); }
 
 // ── インスタ ──
-let _instaImageBase64 = null;
-let _instaImageMime = null;
+let _instaImages = []; // [{base64, mime, dataUrl}, ...]
 
 function previewInstaImage(event) {
   const file = event.target.files[0]; if (!file) return;
-  _instaImageMime = file.type;
+  const mime = file.type;
   const reader = new FileReader();
   reader.onload = e => {
-    _instaImageBase64 = e.target.result.split(',')[1];
-    document.getElementById('insta-preview-img').src = e.target.result;
+    const dataUrl = e.target.result;
+    const base64 = dataUrl.split(',')[1];
+    _instaImages.push({base64, mime, dataUrl});
+    renderInstaImagePreviews();
     document.getElementById('insta-image-preview').style.display = 'block';
-    document.getElementById('insta-extract-status').textContent = '📖 追加時にAIがレシピを読み取ります';
+    document.getElementById('insta-extract-status').textContent = `📖 ${_instaImages.length}枚選択済み・追加時にAIが全部まとめて読み取ります`;
   };
   reader.readAsDataURL(file);
+  event.target.value = ''; // 同じ画像を再選択できるようにリセット
+}
+
+function renderInstaImagePreviews() {
+  const grid = document.getElementById('insta-thumbs-grid');
+  if (!grid) return;
+  grid.innerHTML = _instaImages.map((img, idx) => `
+    <div style="position:relative">
+      <img src="${img.dataUrl}" style="width:70px;height:70px;border-radius:8px;object-fit:cover;display:block">
+      <span onclick="removeInstaImage(${idx})" style="position:absolute;top:-4px;right:-4px;background:#e74c3c;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;font-weight:bold">✕</span>
+    </div>`).join('');
+}
+
+function removeInstaImage(idx) {
+  _instaImages.splice(idx, 1);
+  renderInstaImagePreviews();
+  if (_instaImages.length === 0) {
+    document.getElementById('insta-image-preview').style.display = 'none';
+  } else {
+    document.getElementById('insta-extract-status').textContent = `📖 ${_instaImages.length}枚選択済み・追加時にAIが全部まとめて読み取ります`;
+  }
 }
 
 async function addInstaRef() {
   const url=document.getElementById('insta-url').value.trim();
   const title=document.getElementById('insta-title').value.trim();
-  if (!title && !_instaImageBase64) return alert('料理名またはスクショを追加してください');
+  if (!title && _instaImages.length === 0) return alert('料理名またはスクショを追加してください');
   const ref = {id:Date.now(), url:url||'', title:title||'（スクショから読み取り中）', recipe:'', thumb:null};
-  if (_instaImageBase64) {
-    ref.thumb = 'data:' + _instaImageMime + ';base64,' + _instaImageBase64;
+  if (_instaImages.length > 0) {
+    ref.thumb = _instaImages[0].dataUrl; // 1枚目をサムネにする
     const apiKey = getApiKey();
     if (apiKey) {
-      document.getElementById('insta-extract-status').textContent = '⏳ AIがレシピを読み取り中...';
+      document.getElementById('insta-extract-status').textContent = `⏳ AIが${_instaImages.length}枚のスクショを読み取り中...`;
       try {
-        const prompt = `このInstagramのスクショからレシピを抽出してください。
-料理名、材料（分量付き）、作り方の手順をすべて読み取って以下のJSON形式で返してください。
+        const prompt = `これらは同じレシピのInstagramスクショです（複数枚あります）。
+すべての画像を合わせてレシピを読み取り、料理名・材料（分量付き）・作り方の手順を完全に抽出してください。
+以下のJSON形式のみで返してください：
 {"title":"料理名","ingredients":["材料1 分量","材料2 分量"],"steps":["手順1","手順2"]}
 テキストが見えない場合は{"title":"不明","ingredients":[],"steps":[]}を返してください。`;
-        const result = await callAIWithImage(prompt, _instaImageBase64, _instaImageMime, apiKey);
+        const result = await callAIWithImages(prompt, _instaImages, apiKey);
         const data = JSON.parse(result.replace(/```json|```/g,'').trim());
         if (data.title && data.title !== '不明') {
           if (!title) ref.title = data.title;
@@ -1201,7 +1227,7 @@ async function addInstaRef() {
         }
       } catch(e) { ref.recipe = ''; }
     }
-    _instaImageBase64 = null; _instaImageMime = null;
+    _instaImages = [];
     document.getElementById('insta-image-preview').style.display = 'none';
     document.getElementById('insta-image').value = '';
   }
@@ -1274,9 +1300,13 @@ function saveApiKey() {
 
 function loadSettings() {
   const sc = document.getElementById('serving-count');
-  const gd = document.getElementById('garbage-day');
   if(sc) sc.value = settings.servings || 4;
-  if(gd) gd.value = settings.garbageDay || '月曜・木曜';
+  // ごみの日チェックボックス復元
+  const gdStr = settings.garbageDay || '月曜・木曜';
+  const gdDays = gdStr.split('・').map(p=>p.trim().replace('曜日','').replace('曜',''));
+  document.querySelectorAll('.garbage-day').forEach(el=>{
+    el.classList.toggle('selected', gdDays.includes(el.dataset.day));
+  });
   const tog = document.getElementById('bento-toggle');
   const detail = document.getElementById('bento-detail');
   if(tog) tog.classList.toggle('selected', !!settings.bento);
@@ -1302,11 +1332,17 @@ function loadSettings() {
   renderSaleTags();
 }
 
+function autoSaveGarbageDay() {
+  const days = [...document.querySelectorAll('.garbage-day.selected')].map(el=>el.dataset.day+'曜');
+  settings.garbageDay = days.join('・') || '月曜・木曜';
+  saveData();
+}
+
 function getSettings() {
   const sc = document.getElementById('serving-count');
-  const gd = document.getElementById('garbage-day');
   settings.servings = sc ? parseInt(sc.value) : 4;
-  settings.garbageDay = gd ? gd.value : '月曜・木曜';
+  const gdDays = [...document.querySelectorAll('.garbage-day.selected')].map(el=>el.dataset.day+'曜');
+  settings.garbageDay = gdDays.join('・') || '月曜・木曜';
   settings.bento = document.getElementById('bento-toggle')?.classList.contains('selected') || false;
   settings.bentoDays = [...document.querySelectorAll('.bento-day.selected')].map(el => el.dataset.day);
   settings.weekdayLunch = document.getElementById('lunch-toggle')?.classList.contains('selected') || false;
@@ -2050,6 +2086,41 @@ async function callAI(prompt, apiKey, maxTokens) {
 }
 
 // ══════════════════════════════════════════════════
+// ── callAIWithImages : 複数画像対応AI呼び出し ──
+// ══════════════════════════════════════════════════
+async function callAIWithImages(prompt, images, apiKey) {
+  // images = [{base64, mime, dataUrl}, ...]
+  if (!images || images.length === 0) throw new Error('画像がありません');
+  if (images.length === 1) return callAIWithImage(prompt, images[0].base64, images[0].mime, apiKey);
+  const key = (apiKey || getApiKey() || '').replace(/[ --﻿​\s]/g,'').trim();
+  if (!key) throw new Error('APIキーが設定されていません。');
+  if (key.toLowerCase().startsWith('sk-ant')) {
+    // Anthropic Claude: 複数画像
+    const content = [];
+    images.forEach(img => {
+      content.push({type:'image', source:{type:'base64', media_type:img.mime||'image/jpeg', data:img.base64}});
+    });
+    content.push({type:'text', text:prompt});
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:2048, messages:[{role:'user',content}] })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error('Claude API エラー: ' + (d.error.message||''));
+    return d.content[0].text;
+  }
+  // Gemini: 複数画像を parts に並べる
+  const parts = [];
+  images.forEach(img => {
+    parts.push({inline_data:{mime_type:img.mime||'image/jpeg', data:img.base64}});
+  });
+  parts.push({text:prompt});
+  return _callGemini({
+    contents:[{parts}],
+    generationConfig:{maxOutputTokens:2048, temperature:0.2}
+  }, key);
+}
+
 // ── callAIWithImage : 画像付きAI呼び出し ──
 // ══════════════════════════════════════════════════
 async function callAIWithImage(prompt, base64, mimeType, apiKey) {
