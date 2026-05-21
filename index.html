@@ -443,6 +443,17 @@
         </div>
       </div>
     </div>
+    <div style="font-size:10px;color:#888;margin:10px 0 4px">🍽 曜日ごとのリクエスト（任意）</div>
+    <div style="font-size:10px;color:#aaa;margin-bottom:6px">例：丼物、麺類、揚げ物、簡単なもの、おまかせ</div>
+    <div id="day-prefs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:4px"><span style="font-size:11px;width:20px;color:#555">月</span><input type="text" class="day-pref-input" data-day="月" placeholder="おまかせ" style="flex:1;font-size:11px;padding:5px 8px"></div>
+      <div style="display:flex;align-items:center;gap:4px"><span style="font-size:11px;width:20px;color:#555">火</span><input type="text" class="day-pref-input" data-day="火" placeholder="おまかせ" style="flex:1;font-size:11px;padding:5px 8px"></div>
+      <div style="display:flex;align-items:center;gap:4px"><span style="font-size:11px;width:20px;color:#555">水</span><input type="text" class="day-pref-input" data-day="水" placeholder="おまかせ" style="flex:1;font-size:11px;padding:5px 8px"></div>
+      <div style="display:flex;align-items:center;gap:4px"><span style="font-size:11px;width:20px;color:#555">木</span><input type="text" class="day-pref-input" data-day="木" placeholder="おまかせ" style="flex:1;font-size:11px;padding:5px 8px"></div>
+      <div style="display:flex;align-items:center;gap:4px"><span style="font-size:11px;width:20px;color:#555">金</span><input type="text" class="day-pref-input" data-day="金" placeholder="おまかせ" style="flex:1;font-size:11px;padding:5px 8px"></div>
+      <div style="display:flex;align-items:center;gap:4px"><span style="font-size:11px;width:20px;color:#555">土</span><input type="text" class="day-pref-input" data-day="土" placeholder="おまかせ" style="flex:1;font-size:11px;padding:5px 8px"></div>
+      <div style="display:flex;align-items:center;gap:4px"><span style="font-size:11px;width:20px;color:#555">日</span><input type="text" class="day-pref-input" data-day="日" placeholder="おまかせ" style="flex:1;font-size:11px;padding:5px 8px"></div>
+    </div>
     <div style="font-size:10px;color:#888;margin:8px 0 4px">🍱 旦那さんのお弁当</div>
     <div class="concern-tags" style="margin-bottom:0">
       <span class="concern-tag" id="bento-toggle" onclick="toggleBentoSetting()">平日お弁当あり</span>
@@ -1261,7 +1272,7 @@ function deleteInstaRef(id) {
 
 // ── 設定 ──
 let saleItems = JSON.parse(localStorage.getItem('uchi_sale') || '[]');
-let settings  = JSON.parse(localStorage.getItem('uchi_set')  || '{"servings":4,"garbageDay":"月曜・木曜","bento":false,"bentoDays":[],"weekdayLunch":false,"lunchPrefs":["diet","quick"],"yahooAppId":"","apiKey":""}');
+let settings  = JSON.parse(localStorage.getItem('uchi_set')  || '{"servings":4,"garbageDay":"月曜・木曜","dayPrefs":{},"bento":false,"bentoDays":[],"weekdayLunch":false,"lunchPrefs":["diet","quick"],"yahooAppId":"","apiKey":""}');
 
 function toggleBentoSetting() {
   const tog = document.getElementById('bento-toggle');
@@ -1307,6 +1318,11 @@ function loadSettings() {
   document.querySelectorAll('.garbage-day').forEach(el=>{
     el.classList.toggle('selected', gdDays.includes(el.dataset.day));
   });
+  // 曜日リクエスト復元
+  const dp = settings.dayPrefs || {};
+  document.querySelectorAll('.day-pref-input').forEach(el=>{
+    el.value = dp[el.dataset.day] || '';
+  });
   const tog = document.getElementById('bento-toggle');
   const detail = document.getElementById('bento-detail');
   if(tog) tog.classList.toggle('selected', !!settings.bento);
@@ -1343,6 +1359,9 @@ function getSettings() {
   settings.servings = sc ? parseInt(sc.value) : 4;
   const gdDays = [...document.querySelectorAll('.garbage-day.selected')].map(el=>el.dataset.day+'曜');
   settings.garbageDay = gdDays.join('・') || '月曜・木曜';
+  const dp = {};
+  document.querySelectorAll('.day-pref-input').forEach(el=>{ if(el.value.trim()) dp[el.dataset.day]=el.value.trim(); });
+  settings.dayPrefs = dp;
   settings.bento = document.getElementById('bento-toggle')?.classList.contains('selected') || false;
   settings.bentoDays = [...document.querySelectorAll('.bento-day.selected')].map(el => el.dataset.day);
   settings.weekdayLunch = document.getElementById('lunch-toggle')?.classList.contains('selected') || false;
@@ -1421,6 +1440,7 @@ function buildPrompt() {
   const lunchPrefsText = s.lunchPrefs && s.lunchPrefs.length ? s.lunchPrefs.map(p => ({diet:'ダイエット重視',quick:'15分以内',insta:'インスタレシピ活用',lowcarb:'低糖質'}[p]||p)).join('・') : 'なし';
   const lunchInfo = s.weekdayLunch ? '平日の昼食は1人分（本人のみ）。こだわり：' + lunchPrefsText + '。15分以内で作れるシンプルなレシピを提案。' : '';
   const saleInfo  = saleItems&&saleItems.length ? `今日の特売・旬（必ず使う）：${saleItems.join('、')}` : '';
+  const dayPrefList = Object.entries(s.dayPrefs||{}).filter(([,v])=>v).map(([k,v])=>`${k}曜：${v}`).join('、');
   return `あなたは家庭料理の献立プランナーです。以下の情報をもとに今週7日分の献立を考えてください。
 
 【何人分】${s.servings||4}人分（材料の量は${s.servings||4}人分で記載）
@@ -1431,6 +1451,7 @@ ${urgentIngs ? '【3日以内に期限切れ（必ず今週前半で使う）】
 【過去に好評だった料理（積極的に採用）】${histGood||'なし'}
 【過去に不評だった料理（避ける）】${histBad||'なし'}
 【生ゴミの日】${gd}（前日の${fishDays.join('と')}に必ず魚料理を入れること）
+${dayPrefList ? '【曜日ごとのリクエスト（必ず守ること）】' + dayPrefList : ''}
 【お弁当】${bentoInfo}
 ${lunchInfo ? '【平日昼食】' + lunchInfo : ''}
 ${saleInfo?'【'+saleInfo+'】':''}
@@ -1445,6 +1466,63 @@ ${saleInfo?'【'+saleInfo+'】':''}
 以下のJSON形式のみで返してください。他テキスト不要。
 {"days":[{"day":"月曜日","date":"","fish":false,"bentoNote":"","main":{"name":"料理名","ingredients":["鶏もも肉 300g","醤油 大さじ2"],"steps":["中火でフライパンを熱し、油を薄くひく","鶏肉を皮目を下にして入れ、中火で4分焼く"],"kidsHelp":["野菜を洗う","調味料を混ぜる"],"time":"20分","nutrition":{"protein":"高","veggie":"中","carb":"中"}},"side1":{"name":"副菜名","ingredients":["材料 分量"],"steps":["具体的な手順"],"kidsHelp":["手伝える作業"],"time":"10分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"side2":{"name":"副菜名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":[],"time":"5分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"soup":{"name":"汁物名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":["具を入れる"],"time":"10分","nutrition":{"protein":"低","veggie":"中","carb":"低"}},"lunch":null,"bento":null}]}
 bentoNoteは「夜の残りで可」または「専用弁当あり」と記載。専用弁当が必要な日はbentoフィールドに{"name":"弁当名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":[],"time":"10分"}を入れる。魚の日はfish:trueにする。平日昼食がある場合はlunchフィールドに{"name":"昼食名","ingredients":["材料（1人分） 分量"],"steps":["手順"],"kidsHelp":[],"time":"10分"}を入れる（土日はnull）。`;
+}
+
+function showSwapUI(dayIdx, btn) {
+  // 他のswap-uiを閉じてからトグル
+  document.querySelectorAll('[id^="swap-ui-"]').forEach(el=>{
+    if(el.id !== `swap-ui-${dayIdx}`) el.style.display='none';
+  });
+  const ui = document.getElementById(`swap-ui-${dayIdx}`);
+  ui.style.display = ui.style.display === 'none' ? 'block' : 'none';
+}
+
+function swapDays(i, j) {
+  if (!weekMenu) return;
+  const tmp = weekMenu.days[i];
+  // day名・dateはそのまま、料理だけ入れ替え
+  const fieldsToSwap = ['main','side1','side2','soup','lunch','bento','fish','bentoNote'];
+  fieldsToSwap.forEach(f => {
+    const t = weekMenu.days[i][f];
+    weekMenu.days[i][f] = weekMenu.days[j][f];
+    weekMenu.days[j][f] = t;
+  });
+  saveData(); renderMenu(weekMenu); renderNutrition();
+}
+
+async function replanDay(dayIdx) {
+  if (!weekMenu) return;
+  const apiKey = getApiKey();
+  if (!apiKey) return alert('APIキーを入力して保存してください');
+  const day = weekMenu.days[dayIdx];
+  const card = document.getElementById(`day-card-${dayIdx}`);
+  if (card) card.style.opacity = '0.4';
+  try {
+    const s = getSettings();
+    const ingList = ingredients.map(i=>i.name).join('、');
+    const instaList = instaRefs.map(r=>r.recipe?`【${r.title}】${r.recipe}`:r.title).join('\n');
+    const histBad = cookHistory.filter(h=>h.bad).map(h=>h.name).join('、');
+    const dayPref = (s.dayPrefs||{})[day.day.replace('曜日','')] || '';
+    const otherMains = weekMenu.days.filter((_,i)=>i!==dayIdx).map(d=>d.main?.name||'').filter(Boolean).join('、');
+    const prompt = `家庭料理の献立プランナーです。${day.day}の夕食献立を1日分だけ作り直してください。
+【何人分】${s.servings||4}人分
+【家にある食材】${ingList||'特になし'}
+【参考レシピ】${instaList||'特になし'}
+【今週他の日に出る料理（重複NG）】${otherMains}
+【避ける料理】${histBad||'なし'}
+${dayPref?'【この日のリクエスト（必ず守る）】'+dayPref:''}
+${day.fish?'【条件】この日は魚料理をメインに（生ゴミの前日）':''}
+レシピのルール：材料は分量を必ず記載、手順は火加減・時間を具体的に、kidsHelpは必ず1〜3個（包丁・火不使用）。
+以下のJSON形式のみで返す（他テキスト不要）：
+{"main":{"name":"料理名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":["子供手伝い"],"time":"20分","nutrition":{"protein":"高","veggie":"中","carb":"中"}},"side1":{"name":"副菜名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":["子供手伝い"],"time":"10分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"side2":{"name":"副菜名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":[],"time":"5分","nutrition":{"protein":"低","veggie":"高","carb":"低"}},"soup":{"name":"汁物名","ingredients":["材料 分量"],"steps":["手順"],"kidsHelp":["具を入れる"],"time":"10分","nutrition":{"protein":"低","veggie":"中","carb":"低"}}}`;
+    const aiText = await callAI(prompt, apiKey, 3000);
+    const data = JSON.parse(aiText.replace(/```json|```/g,'').trim());
+    ['main','side1','side2','soup'].forEach(f=>{ if(data[f]) weekMenu.days[dayIdx][f]=data[f]; });
+    saveData(); renderMenu(weekMenu); renderNutrition();
+  } catch(e) {
+    alert('作り直しに失敗しました。もう一度お試しください。');
+    if (card) card.style.opacity = '1';
+  }
 }
 
 async function replanMenu() {
@@ -1486,10 +1564,19 @@ function renderMenu(menu) {
     const badges = [];
     if(day.fish) badges.push('<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:#2a5fa0;color:white">🐟 魚の日</span>');
     if(day.bentoNote) badges.push(`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:#5a8a50;color:white">🍱 ${day.bentoNote}</span>`);
-    return `<div class="day-card">
+    return `<div class="day-card" id="day-card-${i}">
       <div class="day-header">
         <span>${day.day} <span style="font-size:10px;color:#A08070">${day.date||''}</span></span>
-        <div style="display:flex;gap:4px">${badges.join('')}</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          ${badges.join('')}
+          <button onclick="replanDay(${i})" title="この日だけ作り直す" style="background:#e8f4fd;border:none;border-radius:8px;padding:4px 8px;font-size:13px;cursor:pointer">🔄</button>
+          <button onclick="showSwapUI(${i},this)" title="他の日と入れ替える" style="background:#f0f0f0;border:none;border-radius:8px;padding:4px 8px;font-size:13px;cursor:pointer">↔️</button>
+        </div>
+      </div>
+      <div id="swap-ui-${i}" style="display:none;background:#fffbe6;border-radius:8px;padding:8px;margin-bottom:6px;font-size:12px">
+        <span style="color:#888;margin-right:6px">↔️ 入れ替え先：</span>
+        ${menu.days.map((_,j)=>j!==i?`<button onclick="swapDays(${i},${j})" style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:3px 10px;margin:2px;font-size:12px;cursor:pointer">${menu.days[j].day.replace('曜日','')}</button>`:'').join('')}
+        <button onclick="document.getElementById('swap-ui-${i}').style.display='none'" style="background:#eee;border:none;border-radius:6px;padding:3px 8px;margin:2px;font-size:12px;cursor:pointer">✕</button>
       </div>
       ${renderMealRow(day.main,'main',i,'main')}
       ${day.side1?renderMealRow(day.side1,'side1',i,'side'):''}
