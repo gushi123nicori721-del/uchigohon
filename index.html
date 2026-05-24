@@ -28,11 +28,18 @@
 
   .section-title { font-family:'Zen Maru Gothic',sans-serif; font-size:14px; color:var(--brown); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
 
-  .ingredient-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
-  .ingredient-card { background:white; border-radius:12px; padding:12px; border:1px solid var(--border); position:relative; }
-  .ingredient-name { font-size:12px; font-weight:500; margin-bottom:3px; padding-right:18px; }
-  .ingredient-amount { font-size:10px; color:#888; }
-  .ingredient-expiry { font-size:10px; margin-top:5px; padding:2px 7px; border-radius:10px; display:inline-block; }
+  .ingredient-expiry { font-size:10px; padding:2px 7px; border-radius:10px; display:inline-block; }
+  .ing-category-section { margin-bottom:14px; }
+  .ing-cat-header { font-size:11px; font-weight:600; color:var(--brown); padding:5px 2px; margin-bottom:4px; border-bottom:2px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .ing-list-item { background:white; border-radius:10px; border:1px solid var(--border); margin-bottom:5px; overflow:hidden; }
+  .ing-item-row { display:flex; align-items:center; padding:11px 12px; gap:8px; cursor:pointer; user-select:none; -webkit-user-select:none; }
+  .ing-item-name { font-size:13px; font-weight:500; flex:1; }
+  .ing-item-right { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+  .ing-item-amount { font-size:11px; color:#888; }
+  .ing-item-chevron { font-size:10px; color:#bbb; transition:transform 0.2s; display:inline-block; }
+  .ing-list-item.expanded .ing-item-chevron { transform:rotate(180deg); }
+  .ing-item-actions { display:none; padding:0 10px 10px; gap:5px; }
+  .ing-list-item.expanded .ing-item-actions { display:flex; }
   .expiry-soon { background:#FFF0E0; color:var(--accent); }
   .expiry-ok { background:#EFF7F1; color:var(--green); }
   .expiry-urgent { background:#FDEAEA; color:var(--red); }
@@ -213,8 +220,8 @@
     </div>
     <button class="btn btn-primary" onclick="addIngredient()">+ 食材を追加</button>
   </div>
-  <div class="section-title">📦 登録済み食材 <span style="font-size:10px;color:#aaa">（期限が近い順）</span></div>
-  <div class="ingredient-grid" id="ingredient-list"></div>
+  <div class="section-title">📦 登録済み食材 <span style="font-size:10px;color:#aaa">（登録順・カテゴリ別）</span></div>
+  <div id="ingredient-list"></div>
   <div class="section-title" style="margin-top:8px">📝 食材の使用記録 <span style="font-size:10px;color:#aaa">（レシピ以外）</span></div>
   <div id="use-log-list"></div>
 </div>
@@ -719,33 +726,58 @@ function removeIngredient(id) {
 function renderIngredients() {
   const el = document.getElementById('ingredient-list');
   if (!ingredients.length) {
-    el.innerHTML = '<div class="empty-state" style="grid-column:span 2"><div class="emoji">🛒</div><p>食材を追加してください</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="emoji">🛒</div><p>食材を追加してください</p></div>';
     return;
   }
-  const sorted = [...ingredients].sort((a,b) => {
-    if (!a.expiry && !b.expiry) return 0;
-    if (!a.expiry) return 1; if (!b.expiry) return -1;
-    return new Date(a.expiry) - new Date(b.expiry);
+  // 登録順（id=タイムスタンプ）で古い順→新しい順
+  const sorted = [...ingredients].sort((a,b) => a.id - b.id);
+  const catOrder = ['肉・魚','野菜','乳製品・卵','調味料・市販品','乾物・缶詰','冷凍食品','その他'];
+  const catEmoji = {'肉・魚':'🥩','野菜':'🥦','乳製品・卵':'🥛','調味料・市販品':'🫙','乾物・缶詰':'📦','冷凍食品':'🧊','その他':'📋'};
+  const grouped = {};
+  catOrder.forEach(c => grouped[c] = []);
+  sorted.forEach(ing => {
+    const cat = ing.category || 'その他';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(ing);
   });
-  el.innerHTML = sorted.map(ing => {
-    const ec = getExpiryClass(ing.expiry);
-    const et = ing.expiry ? getExpiryText(ing.expiry) : '';
-    const dLeft = ing.expiry ? Math.ceil((new Date(ing.expiry) - new Date()) / 86400000) : 999;
-    const urgBadge = (dLeft <= 3 && dLeft >= 0) ? '<span class="urgent-badge">🔥 要優先使用</span>' : '';
-    return '<div class="ingredient-card">'
-      + '<button class="del-btn" onclick="removeIngredient(' + ing.id + ')">✕</button>'
-      + '<div class="ingredient-name">' + ing.name + '</div>'
-      + '<div class="ingredient-amount">' + (ing.amount||'') + ' ' + ing.category + '</div>'
-      + (et ? '<span class="ingredient-expiry ' + ec + '">' + et + '</span>' : '')
-      + urgBadge
-      + (ing.aiNotes ? '<div style="font-size:9px;color:var(--blue);margin-top:3px;line-height:1.4">🤖 ' + ing.aiNotes + '</div>' : '')
-      + '<div class="ing-card-actions">'
-      + '<button onclick="editIngredient(' + ing.id + ')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:7px;background:var(--cream);font-size:10px;cursor:pointer;color:var(--brown);font-family:inherit">✏️ 編集</button>'
-      + '<button onclick="restockIngredient(' + ing.id + ')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:7px;background:var(--cream);font-size:10px;cursor:pointer;color:var(--brown);font-family:inherit">🛒 買足</button>'
-      + '<button onclick="showUseModal(' + ing.id + ')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:7px;background:var(--cream);font-size:10px;cursor:pointer;color:var(--brown);font-family:inherit">🥄 使用</button>'
-      + '</div>'
+  el.innerHTML = catOrder.filter(cat => grouped[cat].length > 0).map(cat => {
+    const items = grouped[cat];
+    return '<div class="ing-category-section">'
+      + '<div class="ing-cat-header"><span>' + catEmoji[cat] + ' ' + cat + '</span><span style="font-size:10px;color:#bbb">' + items.length + '品</span></div>'
+      + items.map(ing => {
+          const ec = getExpiryClass(ing.expiry);
+          const et = ing.expiry ? getExpiryText(ing.expiry) : '';
+          const dLeft = ing.expiry ? Math.ceil((new Date(ing.expiry) - new Date()) / 86400000) : 999;
+          const urgBadge = (dLeft <= 3 && dLeft >= 0) ? '<span style="font-size:10px">🔥</span>' : '';
+          const expiryBadge = et ? '<span class="ingredient-expiry ' + ec + '" style="font-size:9px;padding:1px 6px">' + et + '</span>' : '';
+          const aiNote = ing.aiNotes ? '<div style="font-size:9px;color:var(--blue);padding:0 12px 8px;line-height:1.4">🤖 ' + ing.aiNotes + '</div>' : '';
+          return '<div class="ing-list-item" onclick="toggleIngItem(this)">'
+            + '<div class="ing-item-row">'
+            + '<div class="ing-item-name">' + ing.name + '</div>'
+            + '<div class="ing-item-right">'
+            + urgBadge
+            + '<span class="ing-item-amount">' + (ing.amount||'') + '</span>'
+            + expiryBadge
+            + '<span class="ing-item-chevron">▼</span>'
+            + '</div></div>'
+            + aiNote
+            + '<div class="ing-item-actions">'
+            + '<button onclick="event.stopPropagation();editIngredient(' + ing.id + ')" style="flex:1;padding:7px 4px;border:1px solid var(--border);border-radius:8px;background:white;font-size:11px;cursor:pointer;font-family:inherit">✏️ 編集</button>'
+            + '<button onclick="event.stopPropagation();restockIngredient(' + ing.id + ')" style="flex:1;padding:7px 4px;border:1px solid var(--border);border-radius:8px;background:white;font-size:11px;cursor:pointer;font-family:inherit">🛒 買い足し</button>'
+            + '<button onclick="event.stopPropagation();showUseModal(' + ing.id + ')" style="flex:1;padding:7px 4px;border:1px solid var(--border);border-radius:8px;background:white;font-size:11px;cursor:pointer;font-family:inherit">✅ 使用</button>'
+            + '<button onclick="event.stopPropagation();removeIngredient(' + ing.id + ')" style="padding:7px 9px;border:none;background:#fdeaea;border-radius:8px;font-size:12px;cursor:pointer">✕</button>'
+            + '</div>'
+            + '</div>';
+        }).join('')
       + '</div>';
   }).join('');
+}
+
+function toggleIngItem(el) {
+  // 他のアイテムを閉じて、タップしたものをトグル
+  const isExpanded = el.classList.contains('expanded');
+  document.querySelectorAll('.ing-list-item.expanded').forEach(item => item.classList.remove('expanded'));
+  if (!isExpanded) el.classList.add('expanded');
 }
 
 function getExpiryClass(expiry) {
