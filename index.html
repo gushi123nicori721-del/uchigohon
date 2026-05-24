@@ -212,15 +212,22 @@
         <option value="肉・魚">🥩 肉・魚</option>
         <option value="野菜">🥦 野菜</option>
         <option value="乳製品・卵">🥛 乳製品・卵</option>
-        <option value="調味料・市販品">🫙 調味料・市販品</option>
-        <option value="乾物・缶詰">📦 乾物・缶詰</option>
+        <option value="調味料">🧂 調味料</option>
+        <option value="缶詰">📦 缶詰</option>
+        <option value="粉物">🌾 粉物</option>
+        <option value="シーズニング・ルー">🍛 シーズニング・ルー</option>
+        <option value="鍋の素・タレ">🍲 鍋の素・タレ</option>
+        <option value="乾物">🫙 乾物</option>
         <option value="冷凍食品">🧊 冷凍食品</option>
         <option value="その他">📋 その他</option>
       </select>
     </div>
     <button class="btn btn-primary" onclick="addIngredient()">+ 食材を追加</button>
   </div>
-  <div class="section-title">📦 登録済み食材 <span style="font-size:10px;color:#aaa">（登録順・カテゴリ別）</span></div>
+  <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+    <span>📦 登録済み食材 <span style="font-size:10px;color:#aaa">（登録順）</span></span>
+    <button onclick="autoReclassify()" style="font-size:11px;padding:4px 10px;background:#f0f7ff;border:1px solid #b3d4f5;border-radius:8px;color:#2a5fa0;cursor:pointer">🔄 自動振り分け</button>
+  </div>
   <div id="ingredient-list"></div>
   <div class="section-title" style="margin-top:8px">📝 食材の使用記録 <span style="font-size:10px;color:#aaa">（レシピ以外）</span></div>
   <div id="use-log-list"></div>
@@ -731,12 +738,16 @@ function renderIngredients() {
   }
   // 登録順（id=タイムスタンプ）で古い順→新しい順
   const sorted = [...ingredients].sort((a,b) => a.id - b.id);
-  const catOrder = ['肉・魚','野菜','乳製品・卵','調味料・市販品','乾物・缶詰','冷凍食品','その他'];
-  const catEmoji = {'肉・魚':'🥩','野菜':'🥦','乳製品・卵':'🥛','調味料・市販品':'🫙','乾物・缶詰':'📦','冷凍食品':'🧊','その他':'📋'};
+  const catOrder = ['肉・魚','野菜','乳製品・卵','調味料','缶詰','粉物','シーズニング・ルー','鍋の素・タレ','乾物','冷凍食品','その他'];
+  const catEmoji = {'肉・魚':'🥩','野菜':'🥦','乳製品・卵':'🥛','調味料':'🧂','缶詰':'📦','粉物':'🌾','シーズニング・ルー':'🍛','鍋の素・タレ':'🍲','乾物':'🫙','冷凍食品':'🧊','その他':'📋'};
+  // 旧カテゴリ名を新カテゴリ名に変換
+  const catLegacyMap = {'調味料・市販品':'調味料','乾物・缶詰':'乾物','野菜・果物':'野菜'};
   const grouped = {};
   catOrder.forEach(c => grouped[c] = []);
   sorted.forEach(ing => {
-    const cat = ing.category || 'その他';
+    let cat = ing.category || 'その他';
+    // 旧カテゴリ名を新カテゴリ名に変換
+    if (catLegacyMap[cat]) cat = catLegacyMap[cat];
     if (!grouped[cat]) grouped[cat] = [];
     grouped[cat].push(ing);
   });
@@ -771,6 +782,24 @@ function renderIngredients() {
         }).join('')
       + '</div>';
   }).join('');
+}
+
+function autoReclassify() {
+  if (!ingredients.length) return alert('食材が登録されていません');
+  let changed = 0;
+  ingredients.forEach(ing => {
+    const newCat = guessCategory(ing.name);
+    if (newCat !== ing.category) {
+      ing.category = newCat;
+      changed++;
+    }
+  });
+  saveData(); renderIngredients();
+  if (changed > 0) {
+    alert(changed + '品のカテゴリを自動で振り分け直しました！');
+  } else {
+    alert('すでに正しく振り分けられています👍');
+  }
 }
 
 function toggleIngItem(el) {
@@ -1741,10 +1770,27 @@ function addRecommendToCart(btn, name, category) {
 }
 
 function guessCategory(name) {
-  if (/鶏|豚|牛|肉|魚|鮭|えび|あじ|さば|ぶり|まぐろ/.test(name)) return '肉・魚';
-  if (/大根|にんじん|玉ねぎ|キャベツ|ほうれん草|小松菜|きゅうり|トマト|なす|じゃがいも|ブロッコリー|ピーマン/.test(name)) return '野菜・果物';
-  if (/豆腐|牛乳|チーズ|卵|ヨーグルト|バター|生クリーム/.test(name)) return '乳製品・卵';
-  if (/醤油|みりん|砂糖|塩|酢|味噌|油|ごま|だし|酒|コチュジャン|ナンプラー/.test(name)) return '調味料';
+  if (!name) return 'その他';
+  // 粉物（調味料より先にチェック）
+  if (/小麦粉|薄力粉|強力粉|中力粉|片栗粉|コーンスターチ|パン粉|天ぷら粉|お好み焼き粉|ホットケーキミックス|米粉|そば粉|タピオカ粉/.test(name)) return '粉物';
+  // 缶詰
+  if (/缶|ツナ|コーン缶|トマト缶|さば缶|鯖缶|スパム|サバ缶|イワシ缶|さんま缶/.test(name)) return '缶詰';
+  // 鍋の素・タレ
+  if (/鍋の素|鍋つゆ|鍋スープ|なべつゆ|寄せ鍋|キムチ鍋|豆乳鍋|ちゃんこ|すき焼きのたれ|焼肉のたれ|しゃぶしゃぶ|ポン酢|めんつゆ|麺つゆ|の素|のもと|のたれ|たれ$|タレ$/.test(name)) return '鍋の素・タレ';
+  // シーズニング・ルー
+  if (/ルー|カレールー|シチュールー|ハヤシ|シーズニング|ふりかけ|チーズリング|コンソメ|鶏がらスープ|中華だし|だしの素|顆粒だし|だしパック|ウェイパー|창/.test(name)) return 'シーズニング・ルー';
+  // 乾物
+  if (/わかめ|ひじき|昆布|のり|海苔|かつおぶし|鰹節|干し|乾燥|春雨|はるさめ|パスタ|スパゲッティ|マカロニ|そうめん|ひやむぎ|乾麺|米$|お米|白米|玄米|もち米|押し麦|オートミール|きくらげ|高野豆腐|凍り豆腐|麩/.test(name)) return '乾物';
+  // 調味料
+  if (/醤油|しょうゆ|味噌|みそ|砂糖|塩$|こしょう|胡椒|酢$|みりん|本みりん|料理酒|酒$|ごま油|サラダ油|オリーブオイル|オリーブ油|キャノーラ|ラード|ケチャップ|マヨネーズ|ソース$|オイスター|豆板醤|コチュジャン|ナンプラー|ニョクマム|ごま$|白ごま|黒ごま|七味|一味|わさび|からし|ラー油|バルサミコ|ワインビネガー|レモン汁|はちみつ|蜂蜜/.test(name)) return '調味料';
+  // 乳製品・卵（チーズリングより後でチェック）
+  if (/卵|たまご|牛乳|ミルク|バター|生クリーム|ヨーグルト|豆腐|納豆|豆乳|スライスチーズ|クリームチーズ|粉チーズ|モッツァレラ|カマンベール|チーズ(?!リング)/.test(name)) return '乳製品・卵';
+  // 肉・魚
+  if (/鶏|豚|牛肉|合い挽き|ひき肉|ミンチ|ベーコン|ハム|ソーセージ|ウインナー|鮭|サーモン|まぐろ|鮪|えび|エビ|蛸|たこ|いか|イカ|あじ|鯵|さば|鯖|さんま|秋刀魚|ぶり|鰤|かつお|鰹|鯛|ほたて|帆立|あさり|しじみ|はまぐり|カキ|牡蠣|肉$|魚$|シーフード|刺身|切り身|ツナ(?!缶)/.test(name)) return '肉・魚';
+  // 野菜
+  if (/玉ねぎ|たまねぎ|人参|にんじん|じゃがいも|ジャガイモ|キャベツ|白菜|はくさい|ほうれん草|小松菜|ブロッコリー|カリフラワー|トマト|きゅうり|なす|ナス|ピーマン|パプリカ|ねぎ|ネギ|長ねぎ|しめじ|えのき|椎茸|しいたけ|エリンギ|まいたけ|もやし|大根|だいこん|レタス|水菜|春菊|セロリ|アスパラ|豆苗|かぼちゃ|南瓜|れんこん|ごぼう|さつまいも|里芋|山芋|長芋|ニンニク|にんにく|生姜|しょうが|みょうが|大葉|しそ|パセリ|バジル|野菜|きのこ|果物|りんご|バナナ|みかん|オレンジ|ぶどう|いちご|梨|もも|キウイ/.test(name)) return '野菜';
+  // 冷凍食品
+  if (/冷凍|フローズン|アイス/.test(name)) return '冷凍食品';
   return 'その他';
 }
 
